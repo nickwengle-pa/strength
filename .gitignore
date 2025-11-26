@@ -1,1 +1,7 @@
+node_modules/
+dist/
+.vite/
+*.log
+.DS_Store
+.env*
 firebase-service-account.json
