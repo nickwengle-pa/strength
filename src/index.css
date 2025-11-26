@@ -31,3 +31,32 @@ h3 { @apply text-xl font-semibold; }
 
 /* Link underline styling */
 a { @apply hover:opacity-90; }
+
+/* 3D carousel */
+.carousel-3d {
+  position: relative;
+  height: 320px;
+  perspective: 1400px;
+  transform-style: preserve-3d;
+}
+
+.carousel-3d-item {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform-style: preserve-3d;
+  transition: transform 0.6s ease, opacity 0.6s ease, filter 0.6s ease;
+}
+
+.carousel-card {
+  height: 220px;
+  width: 260px;
+  backdrop-filter: blur(6px);
+}
+
+@media (min-width: 768px) {
+  .carousel-card {
+    height: 240px;
+    width: 300px;
+  }
+}

@@ -59,6 +59,46 @@ const TEAM_OPTIONS: Array<{ label: string; value: Team | "" }> = [
   })),
 ];
 
+type CarouselTeam = {
+  id: string;
+  name: string;
+  subtitle: string;
+  team?: Team;
+  code?: string;
+  accent: string;
+  logo?: string;
+};
+
+const TEAM_CAROUSEL_ITEMS: CarouselTeam[] = [
+  {
+    id: "demo-high",
+    name: "Demo High",
+    subtitle: "Red Dragons",
+    team: "football-varsity",
+    code: "4321",
+    accent: "from-orange-400 via-red-500 to-rose-600",
+    logo: "/assets/dragon.png",
+  },
+  {
+    id: "blue-lake",
+    name: "Blue Lake Prep",
+    subtitle: "Falcons",
+    team: "boys-basketball-varsity",
+    code: "2580",
+    accent: "from-sky-400 via-blue-500 to-indigo-600",
+    logo: "/assets/pl.png",
+  },
+  {
+    id: "east-tech",
+    name: "East Tech",
+    subtitle: "Chargers",
+    team: "girls-basketball-varsity",
+    code: "1470",
+    accent: "from-emerald-400 via-teal-500 to-cyan-500",
+    logo: "/assets/pl.png",
+  },
+];
+
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const waitForRoleSync = async (uid: string, expectAdmin: boolean) => {
@@ -94,6 +134,7 @@ export default function SignIn() {
   const [team, setTeam] = useState<Team | "">("");
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<StatusMessage>(null);
+  const [activeSlide, setActiveSlide] = useState(0);
 
   const auth = fb.auth;
 
@@ -111,6 +152,11 @@ export default function SignIn() {
     return buildCoachEmail(safeFirst, safeLast);
   }, [firstName, lastName]);
 
+  const selectedTeamLabel = useMemo(() => {
+    if (!team) return "No team selected yet";
+    return TEAM_DEFINITIONS.find((definition) => definition.id === team)?.label ?? team;
+  }, [team]);
+
 
   const disabled = submitting;
 
@@ -120,6 +166,14 @@ export default function SignIn() {
     if (stored) {
       setTeam(stored);
     }
+  }, []);
+
+  useEffect(() => {
+    const timer = setInterval(
+      () => setActiveSlide((prev) => (prev + 1) % TEAM_CAROUSEL_ITEMS.length),
+      4200
+    );
+    return () => clearInterval(timer);
   }, []);
 
   useEffect(() => {
@@ -151,6 +205,14 @@ export default function SignIn() {
     setLastName("");
     setTeam("");
     setMode(null);
+  };
+
+  const handleSelectSlide = (index: number) => {
+    setActiveSlide(index);
+    const chosenTeam = TEAM_CAROUSEL_ITEMS[index]?.team;
+    if (chosenTeam) {
+      setTeam(chosenTeam);
+    }
   };
 
   const persistProfile = async (
@@ -458,246 +520,408 @@ const handleCoachSignIn = async (event: React.FormEvent) => {
   }
 };
 
-  return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-10">
-      <div className="w-full max-w-4xl space-y-8">
-        <div className="text-center space-y-4">
-          <div className="flex justify-center">
-            <img
-              src="/assets/dragon.png"
-              alt="PL Strength logo"
-              className="h-24 w-24 rounded-full border border-gray-200 bg-white object-contain shadow-soft"
-            />
-          </div>
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900">PL Strength Sign In</h1>
-          <p className="text-sm text-gray-600">Choose how you want to log in to start training.</p>
-        </div>
+  const slideCount = TEAM_CAROUSEL_ITEMS.length;
+  const activeOrg = TEAM_CAROUSEL_ITEMS[activeSlide % slideCount];
 
-        {mode === null ? (
-          <div className="grid gap-6 md:grid-cols-2">
-            <button
-              type="button"
-              onClick={() => chooseSignInMode("athlete")}
-              disabled={disabled}
-              className="group flex flex-col items-center justify-center gap-1 rounded-3xl border border-rose-200 bg-rose-100/80 p-12 text-center transition hover:-translate-y-1 hover:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-500 disabled:pointer-events-none disabled:opacity-60"
-            >
-              <span className="text-3xl font-extrabold uppercase tracking-wide text-rose-700">
-                Athlete
-              </span>
-              <span className="text-3xl font-extrabold uppercase tracking-wide text-rose-700">
-                Login
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={() => chooseSignInMode("coach")}
-              disabled={disabled}
-              className="group flex flex-col items-center justify-center gap-1 rounded-3xl border border-rose-200 bg-rose-100/80 p-12 text-center transition hover:-translate-y-1 hover:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-500 disabled:pointer-events-none disabled:opacity-60"
-            >
-              <span className="text-3xl font-extrabold uppercase tracking-wide text-rose-700">
-                Coach
-              </span>
-              <span className="text-3xl font-extrabold uppercase tracking-wide text-rose-700">
-                Login
-              </span>
-            </button>
-          </div>
-        ) : (
-          <div className="bg-white border border-gray-200 rounded-3xl shadow-soft p-6 md:p-8">
-            <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-              <button
-                type="button"
-                className="inline-flex items-center gap-2 text-sm font-medium text-brand-700 hover:text-brand-900 disabled:opacity-50"
-                onClick={backToChooser}
-                disabled={disabled}
-              >
-                <span aria-hidden="true">?</span>
-                Choose a different login
-              </button>
-              <div className="text-right">
-                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                  {mode === "athlete" ? "Athlete Sign In" : "Coach Sign In"}
-                </p>
-                <p className="text-sm text-gray-700">
-                  {mode === "athlete"
-                    ? "Use your team code to get started."
-                    : "Use the shared passcode from your program admin."}
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white">
+      <div className="mx-auto flex max-w-6xl flex-col gap-10 px-4 py-10">
+        <section className="relative overflow-hidden rounded-[32px] border border-white/10 bg-gradient-to-br from-slate-900/90 via-slate-800/90 to-slate-900/90 p-6 md:p-8 shadow-2xl">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.12),transparent_35%),radial-gradient(circle_at_80%_0%,rgba(255,255,255,0.08),transparent_25%)]" />
+          <div className="relative grid items-center gap-8 lg:grid-cols-[1.05fr_1fr]">
+            <div className="space-y-5">
+              <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white/80">
+                Multi-program hub
+              </div>
+              <h1 className="text-4xl font-black leading-tight md:text-5xl">
+                Choose your team to enter
+              </h1>
+              <p className="max-w-xl text-sm text-white/80 md:text-base">
+                Tap your school or club logo, then continue as a coach or athlete. New
+                organizations can onboard here with their own passcodes and branding.
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={() => chooseSignInMode("athlete")}
+                  className="rounded-2xl bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl"
+                  disabled={disabled}
+                >
+                  Athlete login
+                </button>
+                <button
+                  type="button"
+                  onClick={() => chooseSignInMode("coach")}
+                  className="rounded-2xl border border-white/30 px-4 py-2 text-sm font-semibold text-white transition hover:border-white hover:bg-white/10"
+                  disabled={disabled}
+                >
+                  Coach login
+                </button>
+                <button
+                  type="button"
+                  onClick={() => chooseSignInMode("coach")}
+                  className="rounded-2xl border border-emerald-300/60 bg-emerald-400/20 px-4 py-2 text-sm font-semibold text-emerald-100 transition hover:bg-emerald-400/30"
+                  disabled={disabled}
+                >
+                  New organization
+                </button>
+              </div>
+              <div className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-white/60">
+                      Selected team
+                    </p>
+                    <p className="text-base font-semibold text-white">{selectedTeamLabel}</p>
+                  </div>
+                  {activeOrg?.code && (
+                    <div className="rounded-xl bg-white/10 px-3 py-2 text-right">
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-white/60">
+                        Team code
+                      </p>
+                      <p className="text-lg font-bold text-white">{activeOrg.code}</p>
+                    </div>
+                  )}
+                </div>
+                <p className="text-xs text-white/60">
+                  Clicking a logo auto-fills your team. Codes still apply for athlete or coach
+                  access.
                 </p>
               </div>
             </div>
 
-            {message && (
-              <div
-                className={`mb-4 rounded-2xl border px-4 py-3 text-sm ${
-                  message.kind === "success"
-                    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                    : "border-rose-200 bg-rose-50 text-rose-700"
-                }`}
-              >
-                {message.text}
+            <div className="relative">
+              <div className="carousel-3d" role="listbox" aria-label="Team selector">
+                {TEAM_CAROUSEL_ITEMS.map((item, index) => {
+                  const rawOffset = index - activeSlide;
+                  const half = Math.floor(slideCount / 2);
+                  const offset =
+                    rawOffset > half ? rawOffset - slideCount : rawOffset < -half ? rawOffset + slideCount : rawOffset;
+                  const depth = 260 - Math.abs(offset) * 70;
+                  const translateX = offset * 170;
+                  const rotateY = offset * -18;
+                  const opacity = Math.max(0, 1 - Math.abs(offset) * 0.22);
+                  const scale = offset === 0 ? 1 : 0.9;
+
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className="carousel-3d-item focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/70"
+                      style={{
+                        transform: `translateX(${translateX}px) translateZ(${depth}px) rotateY(${rotateY}deg) scale(${scale})`,
+                        zIndex: 100 - Math.abs(offset),
+                        opacity,
+                      }}
+                      aria-label={`Select ${item.name}`}
+                      onClick={() => handleSelectSlide(index)}
+                    >
+                      <div className="carousel-card relative overflow-hidden rounded-3xl border border-white/15 bg-slate-900/80 shadow-2xl">
+                        <div
+                          className={`absolute inset-0 bg-gradient-to-br ${item.accent} opacity-90`}
+                          aria-hidden="true"
+                        />
+                        <div className="relative flex h-full flex-col justify-between p-5 text-left">
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl bg-white/15 ring-2 ring-white/40">
+                              {item.logo ? (
+                                <img
+                                  src={item.logo}
+                                  alt={`${item.name} logo`}
+                                  className="h-full w-full object-cover"
+                                />
+                              ) : (
+                                <span className="text-lg font-bold text-white">
+                                  {item.name.slice(0, 2).toUpperCase()}
+                                </span>
+                              )}
+                            </div>
+                            <div>
+                              <p className="text-sm font-semibold uppercase tracking-wide text-white/80">
+                                {item.subtitle}
+                              </p>
+                              <p className="text-2xl font-black leading-tight text-white">
+                                {item.name}
+                              </p>
+                            </div>
+                          </div>
+                          {item.code && (
+                            <div className="mt-4 inline-flex items-center gap-2 rounded-xl bg-white/15 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-white">
+                              Team code {item.code}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="mt-6 flex items-center justify-center gap-2">
+                {TEAM_CAROUSEL_ITEMS.map((_, index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    className={`h-2 w-8 rounded-full transition ${
+                      index === activeSlide ? "bg-white" : "bg-white/30 hover:bg-white/60"
+                    }`}
+                    onClick={() => handleSelectSlide(index)}
+                    aria-label={`Go to slide ${index + 1}`}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="rounded-[28px] border border-gray-200 bg-white p-6 text-gray-900 shadow-soft md:p-8">
+          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                Login workspace
+              </p>
+              <h2 className="text-3xl font-bold text-gray-900">Continue into your program</h2>
+              <p className="text-sm text-gray-600">
+                Choose athlete or coach to unlock the right tools. Your team selection carries over.
+              </p>
+            </div>
+            <div className="rounded-2xl bg-gray-50 px-4 py-3 text-sm text-gray-700">
+              <div className="font-semibold text-gray-900">Team: {selectedTeamLabel}</div>
+              {activeOrg?.code && (
+                <div className="text-xs text-gray-600">Team code hint: {activeOrg.code}</div>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-6">
+            {mode === null ? (
+              <div className="grid gap-4 md:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={() => chooseSignInMode("athlete")}
+                  disabled={disabled}
+                  className="group flex flex-col items-start justify-between gap-3 rounded-3xl border border-gray-200 bg-gradient-to-br from-blue-50 to-white p-8 text-left shadow-sm transition hover:-translate-y-1 hover:shadow-lg disabled:pointer-events-none disabled:opacity-60"
+                >
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">
+                      Athletes
+                    </p>
+                    <p className="text-2xl font-bold text-blue-900">Enter with team code</p>
+                    <p className="mt-2 text-sm text-gray-600">
+                      Use your 4-digit team code to join your roster instantly.
+                    </p>
+                  </div>
+                  <span className="text-sm font-semibold text-blue-700">Start as athlete -&gt;</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => chooseSignInMode("coach")}
+                  disabled={disabled}
+                  className="group flex flex-col items-start justify-between gap-3 rounded-3xl border border-gray-200 bg-gradient-to-br from-amber-50 to-white p-8 text-left shadow-sm transition hover:-translate-y-1 hover:shadow-lg disabled:pointer-events-none disabled:opacity-60"
+                >
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">
+                      Coaches / Admins
+                    </p>
+                    <p className="text-2xl font-bold text-amber-900">Enter with coach code</p>
+                    <p className="mt-2 text-sm text-gray-600">
+                      Use the shared coach or admin passcode to set staff permissions.
+                    </p>
+                  </div>
+                  <span className="text-sm font-semibold text-amber-700">Start as coach -&gt;</span>
+                </button>
+              </div>
+            ) : (
+              <div className="mt-2 rounded-3xl border border-gray-200 bg-white p-6 shadow-inner">
+                <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-2 text-sm font-medium text-blue-700 hover:text-blue-900 disabled:opacity-50"
+                    onClick={backToChooser}
+                    disabled={disabled}
+                  >
+                    <span aria-hidden="true">&lt;</span>
+                    Choose a different login
+                  </button>
+                  <div className="text-right">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                      {mode === "athlete" ? "Athlete Sign In" : "Coach Sign In"}
+                    </p>
+                    <p className="text-sm text-gray-700">
+                      {mode === "athlete"
+                        ? "Use your team code to get started."
+                        : "Use the shared passcode from your program admin."}
+                    </p>
+                  </div>
+                </div>
+
+                {message && (
+                  <div
+                    className={`mb-4 rounded-2xl border px-4 py-3 text-sm ${
+                      message.kind === "success"
+                        ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                        : "border-rose-200 bg-rose-50 text-rose-700"
+                    }`}
+                  >
+                    {message.text}
+                  </div>
+                )}
+
+                {mode === "athlete" ? (
+                  <form className="space-y-4" onSubmit={handleAthleteSignIn}>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
+                        First name
+                        <input
+                          className="field"
+                          value={firstName}
+                          onChange={(e) => setFirstName(e.target.value)}
+                          placeholder="Jordan"
+                          autoComplete="given-name"
+                          disabled={disabled}
+                        />
+                      </label>
+                      <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
+                        Last name
+                        <input
+                          className="field"
+                          value={lastName}
+                          onChange={(e) => setLastName(e.target.value)}
+                          placeholder="Taylor"
+                          autoComplete="family-name"
+                          disabled={disabled}
+                        />
+                      </label>
+                    </div>
+
+                    <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
+                      Team
+                      <select
+                        className="field"
+                        value={team}
+                        onChange={(e) => setTeam(e.target.value as Team | "")}
+                        disabled={disabled}
+                      >
+                        {TEAM_OPTIONS.map((opt) => (
+                          <option key={opt.label} value={opt.value}>
+                            {opt.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
+                      4-digit team code
+                      <input
+                        className="field tracking-widest text-center text-base"
+                        type="tel"
+                        value={passcode}
+                        onChange={(e) => setPasscode(normalizePasscodeDigits(e.target.value))}
+                        placeholder="1234"
+                        inputMode="numeric"
+                        maxLength={4}
+                        disabled={disabled}
+                      />
+                    </label>
+
+                    <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
+                      Team email we will use:{" "}
+                      <span className="font-semibold text-gray-900">
+                        {athleteEmail || "firstlast@pl.strength"}
+                      </span>
+                      . No real inbox required - coaches manage the codes.
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="btn btn-primary w-full justify-center py-3 text-base"
+                      disabled={disabled}
+                    >
+                      {submitting && mode === "athlete" ? "Signing in..." : "Sign in"}
+                    </button>
+                  </form>
+                ) : (
+                  <form className="space-y-4" onSubmit={handleCoachSignIn}>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
+                        First name
+                        <input
+                          className="field"
+                          value={firstName}
+                          onChange={(e) => setFirstName(e.target.value)}
+                          placeholder="Jordan"
+                          autoComplete="given-name"
+                          disabled={disabled}
+                        />
+                      </label>
+                      <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
+                        Last name
+                        <input
+                          className="field"
+                          value={lastName}
+                          onChange={(e) => setLastName(e.target.value)}
+                          placeholder="Taylor"
+                          autoComplete="family-name"
+                          disabled={disabled}
+                        />
+                      </label>
+                    </div>
+
+                    <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
+                      Team
+                      <select
+                        className="field"
+                        value={team}
+                        onChange={(e) => setTeam(e.target.value as Team | "")}
+                        disabled={disabled}
+                      >
+                        {TEAM_OPTIONS.map((opt) => (
+                          <option key={opt.label} value={opt.value}>
+                            {opt.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
+                      Coach passcode
+                      <input
+                        className="field tracking-widest text-center text-base"
+                        value={passcode}
+                        onChange={(e) => setPasscode(normalizeCoachPasscode(e.target.value))}
+                        placeholder="FIREUP"
+                        maxLength={16}
+                        disabled={disabled}
+                      />
+                    </label>
+
+                    <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
+                      Coach email we will use:{" "}
+                      <span className="font-semibold text-gray-900">
+                        {coachEmail || "coach-firstlast@pl.strength"}
+                      </span>
+                      . Share the passcode only with trusted staff.
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      Ask your program admin for the current passcode (configured via{" "}
+                      <code>VITE_COACH_PASSCODE</code>).
+                    </p>
+                    <button
+                      type="submit"
+                      className="btn btn-primary w-full justify-center py-3 text-base"
+                      disabled={disabled}
+                    >
+                      {submitting && mode === "coach" ? "Signing in..." : "Sign in as coach"}
+                    </button>
+                  </form>
+                )}
               </div>
             )}
-
-            {mode === "athlete" ? (
-              <form className="space-y-4" onSubmit={handleAthleteSignIn}>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
-                    First name
-                    <input
-                      className="field"
-                      value={firstName}
-                      onChange={(e) => setFirstName(e.target.value)}
-                      placeholder="Jordan"
-                      autoComplete="given-name"
-                      disabled={disabled}
-                    />
-                  </label>
-                  <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
-                    Last name
-                    <input
-                      className="field"
-                      value={lastName}
-                      onChange={(e) => setLastName(e.target.value)}
-                      placeholder="Taylor"
-                      autoComplete="family-name"
-                      disabled={disabled}
-                    />
-                  </label>
-                </div>
-
-                <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
-                  Team
-                  <select
-                    className="field"
-                    value={team}
-                    onChange={(e) => setTeam(e.target.value as Team | "")}
-                    disabled={disabled}
-                  >
-                    {TEAM_OPTIONS.map((opt) => (
-                      <option key={opt.label} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
-                  4-digit team code
-                  <input
-                    className="field tracking-widest text-center text-base"
-                    type="tel"
-                    value={passcode}
-                    onChange={(e) => setPasscode(normalizePasscodeDigits(e.target.value))}
-                    placeholder="1234"
-                    inputMode="numeric"
-                    maxLength={4}
-                    disabled={disabled}
-                  />
-                </label>
-
-                <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
-                  Team email we will use:{" "}
-                  <span className="font-semibold text-gray-900">
-                    {athleteEmail || "firstlast@pl.strength"}
-                  </span>
-                  . No real inbox required - coaches manage the codes.
-                </div>
-
-                <button
-                  type="submit"
-                  className="btn btn-primary w-full justify-center py-3 text-base"
-                  disabled={disabled}
-                >
-                  {submitting && mode === "athlete" ? "Signing in..." : "Sign in"}
-                </button>
-              </form>
-            ) : (
-              <form className="space-y-4" onSubmit={handleCoachSignIn}>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
-                    First name
-                    <input
-                      className="field"
-                      value={firstName}
-                      onChange={(e) => setFirstName(e.target.value)}
-                      placeholder="Jordan"
-                      autoComplete="given-name"
-                      disabled={disabled}
-                    />
-                  </label>
-                  <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
-                    Last name
-                    <input
-                      className="field"
-                      value={lastName}
-                      onChange={(e) => setLastName(e.target.value)}
-                      placeholder="Taylor"
-                      autoComplete="family-name"
-                      disabled={disabled}
-                    />
-                  </label>
-                </div>
-
-                <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
-                  Team
-                  <select
-                    className="field"
-                    value={team}
-                    onChange={(e) => setTeam(e.target.value as Team | "")}
-                    disabled={disabled}
-                  >
-                    {TEAM_OPTIONS.map((opt) => (
-                      <option key={opt.label} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
-                  Coach passcode
-                  <input
-                    className="field tracking-widest text-center text-base"
-                    value={passcode}
-                    onChange={(e) => setPasscode(normalizeCoachPasscode(e.target.value))}
-                    placeholder="FIREUP"
-                    maxLength={16}
-                    disabled={disabled}
-                  />
-                </label>
-
-                <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
-                  Coach email we will use:{" "}
-                  <span className="font-semibold text-gray-900">
-                    {coachEmail || "coach-firstlast@pl.strength"}
-                  </span>
-                  . Share the passcode only with trusted staff.
-                </div>
-                <p className="text-xs text-gray-500">
-                  Ask your program admin for the current passcode (configured via{" "}
-                  <code>VITE_COACH_PASSCODE</code>).
-                </p>
-                <button
-                  type="submit"
-                  className="btn btn-primary w-full justify-center py-3 text-base"
-                  disabled={disabled}
-                >
-                  {submitting && mode === "coach" ? "Signing in..." : "Sign in as coach"}
-                </button>
-              </form>
-            )}
           </div>
-        )}
+        </section>
       </div>
     </div>
   );
 }
-
-
-
-
-
-
 
 
 
