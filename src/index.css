@@ -35,8 +35,8 @@ a { @apply hover:opacity-90; }
 /* 3D carousel */
 .carousel-3d {
   position: relative;
-  height: 320px;
-  perspective: 1400px;
+  height: clamp(320px, 60vh, 520px);
+  perspective: 2000px;
   transform-style: preserve-3d;
 }
 
@@ -49,14 +49,13 @@ a { @apply hover:opacity-90; }
 }
 
 .carousel-card {
-  height: 220px;
-  width: 260px;
-  backdrop-filter: blur(6px);
+  height: clamp(260px, 40vh, 380px);
+  width: clamp(240px, 36vw, 360px);
 }
 
 @media (min-width: 768px) {
   .carousel-card {
-    height: 240px;
-    width: 300px;
+    height: clamp(320px, 46vh, 420px);
+    width: clamp(280px, 40vw, 400px);
   }
 }

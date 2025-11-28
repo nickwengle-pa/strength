@@ -1,4 +1,5 @@
 ﻿import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   getCurrentRoles,
   hasFirebase,
@@ -93,13 +94,29 @@ export default function Admin() {
   }, [user]);
 
   return (
-    <div className="card space-y-5">
-      <div className="space-y-1">
-        <h3 className="text-xl font-semibold">Team Admin</h3>
-        <p className="text-sm text-gray-600">
-          Quick status of your account and instructions for managing coach access.
-        </p>
+    <div className="container space-y-6 py-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Admin</h1>
+          <p className="text-sm text-gray-600">
+            Quick status of your account and instructions for managing coach access.
+          </p>
+        </div>
+        <Link
+          to="/admin/invites"
+          className="text-sm font-semibold text-brand-700 hover:text-brand-900"
+        >
+          Manage invite codes →
+        </Link>
       </div>
+
+      <div className="card space-y-5">
+        <div className="space-y-1">
+          <h3 className="text-xl font-semibold">Team Admin</h3>
+          <p className="text-sm text-gray-600">
+            Quick status of your account and instructions for managing coach access.
+          </p>
+        </div>
 
       {!configured && (
         <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
@@ -206,6 +223,7 @@ export default function Admin() {
           You're currently in athlete mode. Have an admin share the coach passcode so you can log in via the Coach tab.
         </div>
       )}
+    </div>
     </div>
   );
 }

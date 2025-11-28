@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect } from "react";
 import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import Nav from "./components/Nav";
 import ActiveAthleteBanner from "./components/ActiveAthleteBanner";
@@ -15,24 +15,22 @@ import Exercises from "./routes/Exercises";
 import ProgramOutline from "./routes/ProgramOutline";
 import Attendance from "./routes/Attendance";
 import SignIn from "./routes/SignIn";
+import LoginLanding from "./routes/LoginLanding";
+import OrgLogin from "./routes/OrgLogin";
+import NewSchool from "./routes/NewSchool";
+import AdminInvites from "./routes/AdminInvites";
+import SuperAdmin from "./routes/SuperAdmin";
 import { useAuth } from "./lib/auth";
 import { ActiveAthleteProvider } from "./context/ActiveAthleteContext";
+import { useOrg } from "./context/OrgContext";
 
 export default function App() {
   const { user, initializing, signingInWithLink } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
-  const authStateRef = useRef<"signed-in" | "signed-out" | null>(null);
+  const { org } = useOrg();
 
-  useEffect(() => {
-    if (initializing || signingInWithLink) return;
-    const nextState = user ? "signed-in" : "signed-out";
-    if (authStateRef.current === nextState) return;
-    authStateRef.current = nextState;
-    if (location.pathname !== "/") {
-      navigate("/", { replace: true });
-    }
-  }, [user, initializing, signingInWithLink, location.pathname, navigate]);
+  const publicPaths = ["/", "/login", "/login-selection", "/DH", "/new-school"];
 
   if (initializing || signingInWithLink) {
     return (
@@ -42,18 +40,40 @@ export default function App() {
     );
   }
 
-  if (!user) {
+  const isPublic =
+    publicPaths.includes(location.pathname) ||
+    location.pathname.startsWith("/org/");
+
+  if (!user && !isPublic) {
     return <SignIn />;
   }
 
   return (
     <ActiveAthleteProvider>
       <div className="min-h-full flex flex-col">
-        <Nav />
-        <ActiveAthleteBanner />
+        {user && (
+          <>
+            <Nav />
+            <ActiveAthleteBanner />
+          </>
+        )}
         <main className="flex-1">
           <Routes>
             <Route path="/" element={<Home />} />
+            <Route path="/login-selection" element={<LoginLanding />} />
+            <Route
+              path="/DH"
+              element={
+                <LoginLanding
+                  orgName="Demo High"
+                  logoSrc="/assets/dragon.png"
+                  titlePrefix="Demo High Strength"
+                />
+              }
+            />
+            <Route path="/org/:abbr" element={<OrgLogin />} />
+            <Route path="/new-school" element={<NewSchool />} />
+            <Route path="/login" element={<SignIn />} />
             <Route path="/session" element={<Session />} />
             <Route path="/summary" element={<Summary />} />
             <Route path="/progress" element={<Progress />} />
@@ -64,6 +84,8 @@ export default function App() {
             <Route path="/roster" element={<Roster />} />
             <Route path="/attendance" element={<Attendance />} />
             <Route path="/admin" element={<Admin />} />
+            <Route path="/admin/invites" element={<AdminInvites />} />
+            <Route path="/super-admin" element={<SuperAdmin />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

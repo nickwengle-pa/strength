@@ -485,8 +485,8 @@ export const normalizeEquipment = (
   return result;
 };
 
-const profRef = (database: Firestore, uid: string) =>
-  doc(database, "athletes", uid, "profile", "main");
+const profRef = (database: Firestore, orgId: string, uid: string) =>
+  orgDoc(database, orgId, "athletes", uid, "profile", "main");
 
 let ensurePromise: Promise<string> | null = null;
 let roleCache: string[] | null = null;
@@ -569,8 +569,8 @@ export async function ensureAnon(): Promise<string> {
   return ensurePromise;
 }
 
-const roleRef = (database: Firestore, uid: string) =>
-  doc(database, "roles", uid);
+const roleRef = (database: Firestore, orgId: string, uid: string) =>
+  orgDoc(database, orgId, "roles", uid);
 
 const sanitizeRoleArray = (value: unknown): string[] => {
   if (!Array.isArray(value)) return [];

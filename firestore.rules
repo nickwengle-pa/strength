@@ -105,6 +105,29 @@ service cloud.firestore {
              coachTeamScopes(uid).hasAny([teamId]);
     }
 
+    function orgAllowedKeys() {
+      return ["name", "abbr", "logo", "primaryColor", "secondaryColor", "adminEmail", "adminPhone", "loginPath", "createdAt", "updatedAt", "inviteCode"];
+    }
+
+    function orgCreateShape() {
+      return request.resource.data.keys().hasOnly(orgAllowedKeys())
+        && request.resource.data.name is string
+        && request.resource.data.abbr is string
+        && request.resource.data.logo is string
+        && request.resource.data.loginPath is string
+        && request.resource.data.inviteCode is string
+        && (!request.resource.data.keys().hasAny(["primaryColor"]) || request.resource.data.primaryColor is string)
+        && (!request.resource.data.keys().hasAny(["secondaryColor"]) || request.resource.data.secondaryColor is string)
+        && (!request.resource.data.keys().hasAny(["adminEmail"]) || request.resource.data.adminEmail is string)
+        && (!request.resource.data.keys().hasAny(["adminPhone"]) || request.resource.data.adminPhone is string);
+    }
+
+    function validInvite() {
+      return request.resource.data.keys().hasAny(["inviteCode"])
+        && exists(/databases/$(database)/documents/orgInvites/$(request.resource.data.inviteCode))
+        && get(/databases/$(database)/documents/orgInvites/$(request.resource.data.inviteCode)).data.active == true;
+    }
+
     match /roles/{uid} {
       allow read: if isSignedIn() && (isSelf(uid) || isCoach() || isAdmin());
       allow create, update: if isSelf(uid) || isAdmin();
@@ -146,6 +169,25 @@ service cloud.firestore {
     match /attendance/{team} {
       allow read: if isCoach() || isAdmin();
       allow create, update: if isCoach() || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Organizations (public onboarding)
+    match /organizations/{orgId} {
+      allow read: if true;
+      allow create: if orgCreateShape() && validInvite();
+      allow update: if isAdmin() && orgCreateShape();
+      allow delete: if isAdmin();
+    }
+
+    // Org invites: pre-seeded by admin, consumed once by onboarding
+    match /orgInvites/{code} {
+      allow read: if true;
+      allow create: if isAdmin();
+      allow update: if
+        resource.data.active == true
+        && request.resource.data.keys().hasOnly(["active", "updatedAt"])
+        && request.resource.data.active == false;
       allow delete: if isAdmin();
     }
   }

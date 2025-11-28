@@ -6,6 +6,7 @@ import App from './App';
 import ErrorBoundary from './ErrorBoundary';
 import { AuthProvider } from './lib/auth';
 import { DeviceProvider } from './lib/device';
+import { OrgProvider } from './context/OrgContext';
 
 // Suppress expected Firestore listener termination errors during sign-out
 const originalConsoleError = console.error;
@@ -24,9 +25,11 @@ root.render(
   <HashRouter>
     <DeviceProvider>
       <AuthProvider>
-        <ErrorBoundary>
-          <App />
-        </ErrorBoundary>
+        <OrgProvider>
+          <ErrorBoundary>
+            <App />
+          </ErrorBoundary>
+        </OrgProvider>
       </AuthProvider>
     </DeviceProvider>
   </HashRouter>

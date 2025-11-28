@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -26,6 +27,7 @@ import {
   type RolesDocument,
 } from "../lib/db";
 import { doc, getDoc } from "firebase/firestore";
+import { useOrg } from "../context/OrgContext";
 
 type Mode = "athlete" | "coach";
 
@@ -127,6 +129,9 @@ const updateDisplayNameCache = (name: string | null) => {
 };
 
 export default function SignIn() {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const { org } = useOrg();
   const [mode, setMode] = useState<Mode | null>(null);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -137,6 +142,28 @@ export default function SignIn() {
   const [activeSlide, setActiveSlide] = useState(0);
 
   const auth = fb.auth;
+
+  useEffect(() => {
+    const initial = searchParams.get("mode");
+    if (initial === "athlete" || initial === "coach") {
+      chooseSignInMode(initial as Mode);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (!org) {
+      setMessage({ kind: "error", text: "Select your school/team first." });
+    } else if (message?.kind === "error" && message.text.includes("Select your school")) {
+      setMessage(null);
+    }
+  }, [org, message]);
+
+  useEffect(() => {
+    if (!org) {
+      navigate("/", { replace: true });
+    }
+  }, [org, navigate]);
 
   const athleteEmail = useMemo(() => {
     const safeFirst = sanitizeName(firstName);
@@ -285,6 +312,7 @@ export default function SignIn() {
         kind: "success",
         text: "Signed in! You're ready to train.",
       });
+      navigate("/session", { replace: true });
     } catch (err: any) {
       if (err instanceof AthleteAuthError) {
         if (err.code === "auth/wrong-password") {
@@ -518,10 +546,31 @@ const handleCoachSignIn = async (event: React.FormEvent) => {
     setTeam("");
     setSubmitting(false);
   }
+  navigate("/roster", { replace: true });
 };
 
   const slideCount = TEAM_CAROUSEL_ITEMS.length;
   const activeOrg = TEAM_CAROUSEL_ITEMS[activeSlide % slideCount];
+
+  if (!org) {
+    return (
+      <div className="min-h-screen bg-gray-50 text-gray-900 flex items-center justify-center px-4">
+        <div className="max-w-md space-y-4 text-center">
+          <h1 className="text-2xl font-bold">Select your program first</h1>
+          <p className="text-sm text-gray-600">
+            Pick your school/club from the carousel, then choose coach or athlete login.
+          </p>
+          <button
+            type="button"
+            onClick={() => navigate("/")}
+            className="btn btn-primary w-full justify-center"
+          >
+            Go to program selector
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white">
@@ -922,14 +971,6 @@ const handleCoachSignIn = async (event: React.FormEvent) => {
     </div>
   );
 }
-
-
-
-
-
-
-
-
 
 
 
