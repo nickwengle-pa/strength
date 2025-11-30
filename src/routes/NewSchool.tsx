@@ -12,6 +12,8 @@ type FormState = {
   adminPhone: string;
   logoDataUrl?: string;
   inviteCode: string;
+  orgCode: string;
+  coachPasscode: string;
 };
 
 const initialState: FormState = {
@@ -23,6 +25,8 @@ const initialState: FormState = {
   adminPhone: "",
   inviteCode: "",
   logoDataUrl: "",
+  orgCode: "",
+  coachPasscode: "",
 };
 
 export default function NewSchool() {
@@ -68,6 +72,14 @@ export default function NewSchool() {
       setError("Invite code is required.");
       return;
     }
+    if (!form.orgCode.trim()) {
+      setError("Organization code is required.");
+      return;
+    }
+    if (!form.coachPasscode.trim()) {
+      setError("Coach passcode is required.");
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -83,6 +95,8 @@ export default function NewSchool() {
           adminEmail: form.adminEmail.trim(),
           adminPhone: form.adminPhone.trim(),
           inviteCode: form.inviteCode.trim(),
+          orgCode: form.orgCode.trim().toUpperCase(),
+          coachPasscode: form.coachPasscode.trim().toUpperCase(),
           loginPath: `/org/${trimmedAbbr}`,
           createdAt: Date.now(),
         },
@@ -174,6 +188,36 @@ export default function NewSchool() {
               placeholder="Enter invite code"
               required
             />
+          </label>
+
+          <label className="flex flex-col gap-1 text-sm font-semibold text-gray-700">
+            Organization Code
+            <input
+              className="field uppercase"
+              value={form.orgCode}
+              onChange={(e) => updateField("orgCode", e.target.value.toUpperCase())}
+              placeholder="DH2024"
+              maxLength={16}
+              required
+            />
+            <span className="text-xs text-gray-500">
+              Used in passwords for security (e.g., DH2024)
+            </span>
+          </label>
+
+          <label className="flex flex-col gap-1 text-sm font-semibold text-gray-700">
+            Coach Passcode
+            <input
+              className="field uppercase"
+              value={form.coachPasscode}
+              onChange={(e) => updateField("coachPasscode", e.target.value.toUpperCase())}
+              placeholder="COACH2024"
+              maxLength={16}
+              required
+            />
+            <span className="text-xs text-gray-500">
+              Shared with coaches for login access
+            </span>
           </label>
 
           <div className="grid grid-cols-2 gap-3">

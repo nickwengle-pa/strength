@@ -3,7 +3,9 @@
 @tailwind utilities;
 
 :root {
-  --brand:  #7a0f18;
+  --brand: #7a0f18;
+  --brand-primary: var(--org-primary, #7a0f18);
+  --brand-secondary: var(--org-secondary, #B9B9B9);
 }
 
 html, body, #root { height: 100%; }

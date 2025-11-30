@@ -36,6 +36,20 @@ service cloud.firestore {
       return isSignedIn() && hasRole(request.auth.uid, "admin");
     }
 
+    function getUserProfile(uid) {
+      return get(/databases/$(database)/documents/athletes/$(uid)/profile/main);
+    }
+
+    function userOrgId() {
+      return isSignedIn() && exists(/databases/$(database)/documents/athletes/$(request.auth.uid)/profile/main)
+        ? getUserProfile(request.auth.uid).data.orgId
+        : null;
+    }
+
+    function belongsToUserOrg(resourceOrgId) {
+      return isSignedIn() && resourceOrgId == userOrgId();
+    }
+
     function allowedRoleKeys() {
       return ["roles", "teamScopes", "teamAnchor", "updatedAt", "accessHistory"];
     }
@@ -106,7 +120,7 @@ service cloud.firestore {
     }
 
     function orgAllowedKeys() {
-      return ["name", "abbr", "logo", "primaryColor", "secondaryColor", "adminEmail", "adminPhone", "loginPath", "createdAt", "updatedAt", "inviteCode"];
+      return ["name", "abbr", "logo", "orgCode", "coachPasscode", "primaryColor", "secondaryColor", "adminEmail", "adminPhone", "loginPath", "createdAt", "updatedAt", "inviteCode"];
     }
 
     function orgCreateShape() {
@@ -114,6 +128,8 @@ service cloud.firestore {
         && request.resource.data.name is string
         && request.resource.data.abbr is string
         && request.resource.data.logo is string
+        && request.resource.data.orgCode is string
+        && request.resource.data.coachPasscode is string
         && request.resource.data.loginPath is string
         && request.resource.data.inviteCode is string
         && (!request.resource.data.keys().hasAny(["primaryColor"]) || request.resource.data.primaryColor is string)
@@ -149,26 +165,37 @@ service cloud.firestore {
     }
 
     match /athletes/{uid}/profile/{doc} {
-      allow read: if isSignedIn() && (request.auth.uid == uid || isCoach() || isAdmin());
-      allow create, update: if isSignedIn() && (
-        request.auth.uid == uid ||
-        isCoach() ||
+      allow read: if isSignedIn() && (
+        (request.auth.uid == uid && belongsToUserOrg(resource.data.orgId)) ||
+        (isCoach() && belongsToUserOrg(resource.data.orgId)) ||
         isAdmin()
       );
-      allow delete: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+      allow create, update: if isSignedIn() && (
+        (request.auth.uid == uid && belongsToUserOrg(request.resource.data.orgId)) ||
+        (isCoach() && belongsToUserOrg(request.resource.data.orgId)) ||
+        isAdmin()
+      );
+      allow delete: if isSignedIn() && (
+        (request.auth.uid == uid && belongsToUserOrg(resource.data.orgId)) || 
+        isAdmin()
+      );
     }
 
     match /{path=**}/profile/{doc} {
-      allow read: if isCoach() || isAdmin();
+      allow read: if (isCoach() && belongsToUserOrg(resource.data.orgId)) || isAdmin();
     }
 
     match /athletes/{uid}/sessions/{sid} {
-      allow read, write: if isSignedIn() && (request.auth.uid == uid || isCoach() || isAdmin());
+      allow read, write: if isSignedIn() && (
+        (request.auth.uid == uid && belongsToUserOrg(get(/databases/$(database)/documents/athletes/$(uid)/profile/main).data.orgId)) ||
+        (isCoach() && belongsToUserOrg(get(/databases/$(database)/documents/athletes/$(uid)/profile/main).data.orgId)) ||
+        isAdmin()
+      );
     }
 
     match /attendance/{team} {
-      allow read: if isCoach() || isAdmin();
-      allow create, update: if isCoach() || isAdmin();
+      allow read: if (isCoach() && belongsToUserOrg(resource.data.orgId)) || isAdmin();
+      allow create, update: if (isCoach() && belongsToUserOrg(request.resource.data.orgId)) || isAdmin();
       allow delete: if isAdmin();
     }
 

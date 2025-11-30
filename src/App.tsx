@@ -2,6 +2,7 @@ import React, { useEffect } from "react";
 import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import Nav from "./components/Nav";
 import ActiveAthleteBanner from "./components/ActiveAthleteBanner";
+import OrgTheme from "./components/OrgTheme";
 import Home from "./routes/Home";
 import Session from "./routes/Session";
 import Roster from "./routes/Roster";
@@ -14,6 +15,9 @@ import Profile from "./routes/Profile";
 import Exercises from "./routes/Exercises";
 import ProgramOutline from "./routes/ProgramOutline";
 import Attendance from "./routes/Attendance";
+import Guide from "./routes/Guide";
+import QuickSummary from "./routes/QuickSummary";
+import TeamDashboard from "./routes/TeamDashboard";
 import SignIn from "./routes/SignIn";
 import LoginLanding from "./routes/LoginLanding";
 import OrgLogin from "./routes/OrgLogin";
@@ -50,6 +54,7 @@ export default function App() {
 
   return (
     <ActiveAthleteProvider>
+      <OrgTheme />
       <div className="min-h-full flex flex-col">
         {user && (
           <>
@@ -83,6 +88,8 @@ export default function App() {
             <Route path="/exercises" element={<Exercises />} />
             <Route path="/roster" element={<Roster />} />
             <Route path="/attendance" element={<Attendance />} />
+            <Route path="/guide" element={<Guide />} />
+            <Route path="/quick-summary" element={<QuickSummary />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/admin/invites" element={<AdminInvites />} />
             <Route path="/super-admin" element={<SuperAdmin />} />

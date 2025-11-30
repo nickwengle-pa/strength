@@ -13,6 +13,7 @@ import {
 } from "../lib/db";
 import { useAuth } from "../lib/auth";
 import { useDevice } from "../lib/device";
+import { useOrg } from "../context/OrgContext";
 
 type Status = "checking" | "connected" | "offline";
 
@@ -20,6 +21,7 @@ export default function Nav() {
   const { user, signOut } = useAuth();
   const device = useDevice();
   const location = useLocation();
+  const { org } = useOrg();
   const [status, setStatus] = useState<Status>("checking");
   const [coach, setCoach] = useState(false);
   const [admin, setAdmin] = useState(false);
@@ -194,21 +196,25 @@ export default function Nav() {
   };
 
   const athleteLinks = [
-    { to: "/calculator", label: "Calculator" },
     { to: "/session", label: "Session" },
+    { to: "/calculator", label: "Calculator" },
+    { to: "/progress", label: "Progress" },
     { to: "/exercises", label: "Exercises" },
+    { to: "/profile", label: "Profile" },
   ];
 
   const coachLinks = [
-    { to: "/attendance", label: "Attendance" },
-    { to: "/program-outline", label: "Program Outline" },
+    { to: "/team", label: "Home" },
     { to: "/roster", label: "Roster" },
-    { to: "/calculator", label: "Calculator" },
+    { to: "/attendance", label: "Attendance" },
     { to: "/session", label: "Session" },
+    { to: "/calculator", label: "Calculator" },
+    { to: "/progress", label: "Progress" },
     { to: "/sheets", label: "Sheets" },
-    { to: "/summary", label: "Summary" },
+    { to: "/program-outline", label: "Program" },
     { to: "/exercises", label: "Exercises" },
     { to: "/profile", label: "Profile" },
+    { to: "/guide", label: "Guide" },
   ];
 
   const baseLinks = coach ? coachLinks : athleteLinks;
@@ -270,12 +276,41 @@ export default function Nav() {
 
   const closeMenu = () => setMenuOpen(false);
 
+  const orgLogo = org?.logo || "/assets/dragon.png";
+  const orgName = org?.abbr || org?.name || "PL Strength";
+  const brandColor = org?.primaryColor || "#8B1C21";
+  const homeLink = coach ? "/team" : "/session";
+
+  // Helper to lighten color for backgrounds
+  const lightenColor = (color: string, amount: number) => {
+    const hex = color.replace('#', '');
+    const num = parseInt(hex, 16);
+    const r = Math.min(255, ((num >> 16) & 255) + amount);
+    const g = Math.min(255, ((num >> 8) & 255) + amount);
+    const b = Math.min(255, (num & 255) + amount);
+    return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
+  };
+
+  const brandColorLight = lightenColor(brandColor, 200);
+  const brandColorVeryLight = lightenColor(brandColor, 230);
+
+  const navLinkStyle = (active: boolean) => {
+    if (active) {
+      return {
+        backgroundColor: brandColorVeryLight,
+        color: brandColor,
+        borderColor: brandColorLight,
+      };
+    }
+    return {};
+  };
+
   return (
     <header className="relative border-b border-gray-200/70 bg-white/90 backdrop-blur">
       <div className="container flex items-center gap-3 py-3 md:h-16 md:py-0">
-        <Link to="/" className="flex items-center gap-2 text-gray-900 hover:opacity-90">
-          <img src="/assets/dragon.png" alt="Dragon" className="h-8 w-8 object-contain" />
-          <span className="text-xl font-bold tracking-tight">PL Strength</span>
+        <Link to={homeLink} className="flex items-center gap-2 text-gray-900 hover:opacity-90">
+          <img src={orgLogo} alt={orgName} className="h-8 w-8 object-contain rounded-lg" />
+          <span className="text-xl font-bold tracking-tight">{orgName}</span>
         </Link>
         {!isMobile && renderStatusIndicator()}
         <div className="ml-auto flex items-center gap-2 md:gap-3">
@@ -286,7 +321,11 @@ export default function Nav() {
               )}
               <button
                 type="button"
-                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-700 shadow-soft transition hover:border-brand-200 hover:text-brand-700"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-700 shadow-soft transition"
+                style={{
+                  borderColor: menuOpen ? brandColorLight : undefined,
+                  color: menuOpen ? brandColor : undefined,
+                }}
                 onClick={() => setMenuOpen((prev) => !prev)}
                 aria-expanded={menuOpen}
                 aria-controls="mobile-navigation"
@@ -309,17 +348,26 @@ export default function Nav() {
           ) : (
             <nav className="flex items-center gap-2 md:gap-3">
               {links.map(({ to, label }) => (
-                <NavLink key={to} to={to} className={({ isActive }) => navLinkClass(isActive)}>
+                <NavLink 
+                  key={to} 
+                  to={to} 
+                  className={({ isActive }) => navLinkClass(isActive)}
+                  style={({ isActive }) => navLinkStyle(isActive)}
+                >
                   {label}
                 </NavLink>
               ))}
               {admin && (
-                <span className="inline-flex items-center rounded-full border border-purple-200 bg-purple-100 px-3 py-1 text-xs md:text-sm font-semibold text-purple-700">
+                <span className="inline-flex items-center rounded-full border px-3 py-1 text-xs md:text-sm font-semibold"
+                  style={{ borderColor: '#c084fc', backgroundColor: '#f3e8ff', color: '#7e22ce' }}
+                >
                   Admin
                 </span>
               )}
               {coach && !admin && (
-                <span className="inline-flex items-center rounded-full border border-brand-200 bg-brand-100 px-3 py-1 text-xs md:text-sm font-semibold text-brand-700">
+                <span className="inline-flex items-center rounded-full border px-3 py-1 text-xs md:text-sm font-semibold"
+                  style={{ borderColor: brandColorLight, backgroundColor: brandColorVeryLight, color: brandColor }}
+                >
                   Coach
                 </span>
               )}
@@ -356,18 +404,27 @@ export default function Nav() {
                     key={to}
                     to={to}
                     className={({ isActive }) => navLinkClass(isActive)}
+                    style={({ isActive }) => isActive ? {
+                      borderColor: brandColorLight,
+                      backgroundColor: brandColorVeryLight,
+                      color: brandColor,
+                    } : {}}
                     onClick={closeMenu}
                   >
                     {label}
                   </NavLink>
                 ))}
                 {admin && (
-                  <span className="flex items-center justify-between rounded-xl border-2 border-purple-300 bg-purple-100 px-4 py-2 text-base font-semibold text-purple-700">
+                  <span className="flex items-center justify-between rounded-xl border-2 px-4 py-2 text-base font-semibold"
+                    style={{ borderColor: '#c084fc', backgroundColor: '#f3e8ff', color: '#7e22ce' }}
+                  >
                     Admin mode
                   </span>
                 )}
                 {coach && !admin && (
-                  <span className="flex items-center justify-between rounded-xl border-2 border-brand-300 bg-brand-100 px-4 py-2 text-base font-semibold text-brand-700">
+                  <span className="flex items-center justify-between rounded-xl border-2 px-4 py-2 text-base font-semibold"
+                    style={{ borderColor: brandColorLight, backgroundColor: brandColorVeryLight, color: brandColor }}
+                  >
                     Coach mode
                   </span>
                 )}
@@ -379,7 +436,21 @@ export default function Nav() {
                   </span>
                 )}
                 <button
-                  className="flex items-center justify-center rounded-xl border border-gray-200 px-4 py-2 text-base font-medium text-gray-700 transition hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700"
+                  className="flex items-center justify-center rounded-xl border px-4 py-2 text-base font-medium transition"
+                  style={{
+                    borderColor: '#d1d5db',
+                    color: '#374151',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = brandColorLight;
+                    e.currentTarget.style.backgroundColor = brandColorVeryLight;
+                    e.currentTarget.style.color = brandColor;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = '#d1d5db';
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                    e.currentTarget.style.color = '#374151';
+                  }}
                   type="button"
                   onClick={() => {
                     closeMenu();

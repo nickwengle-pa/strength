@@ -9,11 +9,14 @@ import {
   AthleteAuthError,
   TEAM_DEFINITIONS,
   buildAthleteEmail,
+  buildCoachEmail,
+  coachPassword,
   ensureAdminRole,
   ensureAnon,
   ensureCoachRoleOnly,
   fb,
   fetchCoachTeamScopes,
+  fetchOrgConfig,
   refreshRoles,
   getStoredTeamSelection,
   loadProfileRemote,
@@ -23,6 +26,7 @@ import {
   setStoredTeamScopes,
   signInOrCreateAthleteAccount,
   updateCoachTeamScope,
+  type OrgConfig,
   type Team,
   type RolesDocument,
 } from "../lib/db";
@@ -48,57 +52,12 @@ const adminCoachPasscodeFromEnv = (
   .toString()
   .trim();
 const normalizeCoachPasscode = (value: string) => value.trim().toUpperCase();
-const coachPassword = (code: string) => `${code}coach!`;
-const buildCoachEmail = (firstName: string, lastName: string): string => {
-  const canonical = `${firstName}${lastName}`.toLowerCase().replace(/[^a-z]/g, "");
-  return `coach-${canonical}@pl.strength`;
-};
 const TEAM_OPTIONS: Array<{ label: string; value: Team | "" }> = [
   { label: "Select a team", value: "" },
   ...TEAM_DEFINITIONS.map((definition) => ({
     label: definition.label,
     value: definition.id,
   })),
-];
-
-type CarouselTeam = {
-  id: string;
-  name: string;
-  subtitle: string;
-  team?: Team;
-  code?: string;
-  accent: string;
-  logo?: string;
-};
-
-const TEAM_CAROUSEL_ITEMS: CarouselTeam[] = [
-  {
-    id: "demo-high",
-    name: "Demo High",
-    subtitle: "Red Dragons",
-    team: "football-varsity",
-    code: "4321",
-    accent: "from-orange-400 via-red-500 to-rose-600",
-    logo: "/assets/dragon.png",
-  },
-  {
-    id: "blue-lake",
-    name: "Blue Lake Prep",
-    subtitle: "Falcons",
-    team: "boys-basketball-varsity",
-    code: "2580",
-    accent: "from-sky-400 via-blue-500 to-indigo-600",
-    logo: "/assets/pl.png",
-  },
-  {
-    id: "east-tech",
-    name: "East Tech",
-    subtitle: "Chargers",
-    team: "girls-basketball-varsity",
-    code: "1470",
-    accent: "from-emerald-400 via-teal-500 to-cyan-500",
-    logo: "/assets/pl.png",
-  },
 ];
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -132,16 +91,32 @@ export default function SignIn() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { org } = useOrg();
-  const [mode, setMode] = useState<Mode | null>(null);
+  const [mode, setMode] = useState<Mode | null>("coach");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [passcode, setPasscode] = useState("");
   const [team, setTeam] = useState<Team | "">("");
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<StatusMessage>(null);
-  const [activeSlide, setActiveSlide] = useState(0);
+  const [orgConfig, setOrgConfig] = useState<OrgConfig | null>(null);
 
   const auth = fb.auth;
+
+  // Fetch org config when org changes
+  useEffect(() => {
+    if (!org?.id) {
+      setOrgConfig(null);
+      return;
+    }
+    
+    fetchOrgConfig(org.id).then(config => {
+      if (config) {
+        setOrgConfig(config);
+      } else {
+        setMessage({ kind: "error", text: "Could not load organization settings." });
+      }
+    });
+  }, [org?.id]);
 
   useEffect(() => {
     const initial = searchParams.get("mode");
@@ -168,22 +143,23 @@ export default function SignIn() {
   const athleteEmail = useMemo(() => {
     const safeFirst = sanitizeName(firstName);
     const safeLast = sanitizeName(lastName);
-    if (!safeFirst || !safeLast) return "";
-    return buildAthleteEmail(safeFirst, safeLast);
-  }, [firstName, lastName]);
+    if (!safeFirst || !safeLast || !org?.id) return "";
+    return buildAthleteEmail(safeFirst, safeLast, org.id);
+  }, [firstName, lastName, org?.id]);
 
   const coachEmail = useMemo(() => {
     const safeFirst = sanitizeName(firstName);
     const safeLast = sanitizeName(lastName);
-    if (!safeFirst || !safeLast) return "";
-    return buildCoachEmail(safeFirst, safeLast);
-  }, [firstName, lastName]);
+    if (!safeFirst || !safeLast || !org?.id) return "";
+    return buildCoachEmail(safeFirst, safeLast, org.id);
+  }, [firstName, lastName, org?.id]);
 
   const selectedTeamLabel = useMemo(() => {
     if (!team) return "No team selected yet";
     return TEAM_DEFINITIONS.find((definition) => definition.id === team)?.label ?? team;
   }, [team]);
 
+  const primaryColor = org?.primaryColor || "#8B1C21";
 
   const disabled = submitting;
 
@@ -193,14 +169,6 @@ export default function SignIn() {
     if (stored) {
       setTeam(stored);
     }
-  }, []);
-
-  useEffect(() => {
-    const timer = setInterval(
-      () => setActiveSlide((prev) => (prev + 1) % TEAM_CAROUSEL_ITEMS.length),
-      4200
-    );
-    return () => clearInterval(timer);
   }, []);
 
   useEffect(() => {
@@ -234,21 +202,13 @@ export default function SignIn() {
     setMode(null);
   };
 
-  const handleSelectSlide = (index: number) => {
-    setActiveSlide(index);
-    const chosenTeam = TEAM_CAROUSEL_ITEMS[index]?.team;
-    if (chosenTeam) {
-      setTeam(chosenTeam);
-    }
-  };
-
   const persistProfile = async (
     uid: string | undefined,
     first: string,
     last: string,
     teamSelection: Team | ""
   ) => {
-    if (!uid) return;
+    if (!uid || !org?.id || !orgConfig?.orgCode) return;
     const base = await loadProfileRemote(uid);
     const resolvedTeam = teamSelection ? teamSelection : base?.team;
 
@@ -262,6 +222,8 @@ export default function SignIn() {
       oneRm: base?.oneRm ?? {},
       accessCode: base?.accessCode ?? null,
       equipment: base?.equipment,
+      orgId: org.id,
+      orgCode: orgConfig.orgCode,
     });
 
     setStoredTeamSelection(resolvedTeam ?? "");
@@ -275,6 +237,11 @@ export default function SignIn() {
       setMessage({ kind: "error", text: "Firebase auth is unavailable." });
       return;
     }
+    if (!org?.id || !orgConfig?.orgCode) {
+      setMessage({ kind: "error", text: "Organization settings not loaded." });
+      return;
+    }
+    
     const safeFirst = sanitizeName(firstName);
     const safeLast = sanitizeName(lastName);
     const digits = normalizePasscodeDigits(passcode);
@@ -304,6 +271,8 @@ export default function SignIn() {
         lastName: safeLast,
         passcodeDigits: digits,
         team,
+        orgId: org.id,
+        orgCode: orgConfig.orgCode,
       });
 
       setStoredTeamSelection(profile.team ?? "");
@@ -362,11 +331,8 @@ const handleCoachSignIn = async (event: React.FormEvent) => {
     setMessage({ kind: "error", text: "Firebase auth is unavailable." });
     return;
   }
-  if (!coachPasscodeFromEnv) {
-    setMessage({
-      kind: "error",
-      text: "Coach passcode is not configured. Ask an admin to set VITE_COACH_PASSCODE.",
-    });
+  if (!org?.id || !orgConfig?.orgCode || !orgConfig?.coachPasscode) {
+    setMessage({ kind: "error", text: "Organization settings not loaded." });
     return;
   }
 
@@ -381,13 +347,14 @@ const handleCoachSignIn = async (event: React.FormEvent) => {
     return;
   }
 
-  const email = buildCoachEmail(safeFirst, safeLast);
+  const email = buildCoachEmail(safeFirst, safeLast, org.id);
   const entered = normalizeCoachPasscode(passcode);
   if (!entered) {
     setMessage({ kind: "error", text: "Enter the coach passcode." });
     return;
   }
-  const expected = normalizeCoachPasscode(coachPasscodeFromEnv);
+  
+  const expected = normalizeCoachPasscode(orgConfig.coachPasscode);
   const adminExpected = adminCoachPasscodeFromEnv
     ? normalizeCoachPasscode(adminCoachPasscodeFromEnv)
     : null;
@@ -403,9 +370,7 @@ const handleCoachSignIn = async (event: React.FormEvent) => {
 
   setSubmitting(true);
   setMessage(null);
-  const standardPassword = coachPassword(expected);
-  const enteredPassword = coachPassword(entered);
-  const password = isAdminOverride ? standardPassword : enteredPassword;
+  const password = coachPassword(orgConfig.orgCode, entered);
   let userUid: string | undefined;
 
   try {
@@ -549,9 +514,6 @@ const handleCoachSignIn = async (event: React.FormEvent) => {
   navigate("/roster", { replace: true });
 };
 
-  const slideCount = TEAM_CAROUSEL_ITEMS.length;
-  const activeOrg = TEAM_CAROUSEL_ITEMS[activeSlide % slideCount];
-
   if (!org) {
     return (
       <div className="min-h-screen bg-gray-50 text-gray-900 flex items-center justify-center px-4">
@@ -574,153 +536,7 @@ const handleCoachSignIn = async (event: React.FormEvent) => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white">
-      <div className="mx-auto flex max-w-6xl flex-col gap-10 px-4 py-10">
-        <section className="relative overflow-hidden rounded-[32px] border border-white/10 bg-gradient-to-br from-slate-900/90 via-slate-800/90 to-slate-900/90 p-6 md:p-8 shadow-2xl">
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.12),transparent_35%),radial-gradient(circle_at_80%_0%,rgba(255,255,255,0.08),transparent_25%)]" />
-          <div className="relative grid items-center gap-8 lg:grid-cols-[1.05fr_1fr]">
-            <div className="space-y-5">
-              <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white/80">
-                Multi-program hub
-              </div>
-              <h1 className="text-4xl font-black leading-tight md:text-5xl">
-                Choose your team to enter
-              </h1>
-              <p className="max-w-xl text-sm text-white/80 md:text-base">
-                Tap your school or club logo, then continue as a coach or athlete. New
-                organizations can onboard here with their own passcodes and branding.
-              </p>
-              <div className="flex flex-wrap gap-3">
-                <button
-                  type="button"
-                  onClick={() => chooseSignInMode("athlete")}
-                  className="rounded-2xl bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl"
-                  disabled={disabled}
-                >
-                  Athlete login
-                </button>
-                <button
-                  type="button"
-                  onClick={() => chooseSignInMode("coach")}
-                  className="rounded-2xl border border-white/30 px-4 py-2 text-sm font-semibold text-white transition hover:border-white hover:bg-white/10"
-                  disabled={disabled}
-                >
-                  Coach login
-                </button>
-                <button
-                  type="button"
-                  onClick={() => chooseSignInMode("coach")}
-                  className="rounded-2xl border border-emerald-300/60 bg-emerald-400/20 px-4 py-2 text-sm font-semibold text-emerald-100 transition hover:bg-emerald-400/30"
-                  disabled={disabled}
-                >
-                  New organization
-                </button>
-              </div>
-              <div className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-white/60">
-                      Selected team
-                    </p>
-                    <p className="text-base font-semibold text-white">{selectedTeamLabel}</p>
-                  </div>
-                  {activeOrg?.code && (
-                    <div className="rounded-xl bg-white/10 px-3 py-2 text-right">
-                      <p className="text-[11px] font-semibold uppercase tracking-wide text-white/60">
-                        Team code
-                      </p>
-                      <p className="text-lg font-bold text-white">{activeOrg.code}</p>
-                    </div>
-                  )}
-                </div>
-                <p className="text-xs text-white/60">
-                  Clicking a logo auto-fills your team. Codes still apply for athlete or coach
-                  access.
-                </p>
-              </div>
-            </div>
-
-            <div className="relative">
-              <div className="carousel-3d" role="listbox" aria-label="Team selector">
-                {TEAM_CAROUSEL_ITEMS.map((item, index) => {
-                  const rawOffset = index - activeSlide;
-                  const half = Math.floor(slideCount / 2);
-                  const offset =
-                    rawOffset > half ? rawOffset - slideCount : rawOffset < -half ? rawOffset + slideCount : rawOffset;
-                  const depth = 260 - Math.abs(offset) * 70;
-                  const translateX = offset * 170;
-                  const rotateY = offset * -18;
-                  const opacity = Math.max(0, 1 - Math.abs(offset) * 0.22);
-                  const scale = offset === 0 ? 1 : 0.9;
-
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      className="carousel-3d-item focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/70"
-                      style={{
-                        transform: `translateX(${translateX}px) translateZ(${depth}px) rotateY(${rotateY}deg) scale(${scale})`,
-                        zIndex: 100 - Math.abs(offset),
-                        opacity,
-                      }}
-                      aria-label={`Select ${item.name}`}
-                      onClick={() => handleSelectSlide(index)}
-                    >
-                      <div className="carousel-card relative overflow-hidden rounded-3xl border border-white/15 bg-slate-900/80 shadow-2xl">
-                        <div
-                          className={`absolute inset-0 bg-gradient-to-br ${item.accent} opacity-90`}
-                          aria-hidden="true"
-                        />
-                        <div className="relative flex h-full flex-col justify-between p-5 text-left">
-                          <div className="flex items-center gap-3">
-                            <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl bg-white/15 ring-2 ring-white/40">
-                              {item.logo ? (
-                                <img
-                                  src={item.logo}
-                                  alt={`${item.name} logo`}
-                                  className="h-full w-full object-cover"
-                                />
-                              ) : (
-                                <span className="text-lg font-bold text-white">
-                                  {item.name.slice(0, 2).toUpperCase()}
-                                </span>
-                              )}
-                            </div>
-                            <div>
-                              <p className="text-sm font-semibold uppercase tracking-wide text-white/80">
-                                {item.subtitle}
-                              </p>
-                              <p className="text-2xl font-black leading-tight text-white">
-                                {item.name}
-                              </p>
-                            </div>
-                          </div>
-                          {item.code && (
-                            <div className="mt-4 inline-flex items-center gap-2 rounded-xl bg-white/15 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-white">
-                              Team code {item.code}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-              <div className="mt-6 flex items-center justify-center gap-2">
-                {TEAM_CAROUSEL_ITEMS.map((_, index) => (
-                  <button
-                    key={index}
-                    type="button"
-                    className={`h-2 w-8 rounded-full transition ${
-                      index === activeSlide ? "bg-white" : "bg-white/30 hover:bg-white/60"
-                    }`}
-                    onClick={() => handleSelectSlide(index)}
-                    aria-label={`Go to slide ${index + 1}`}
-                  />
-                ))}
-              </div>
-            </div>
-          </div>
-        </section>
+      <div className="mx-auto flex max-w-4xl flex-col gap-10 px-4 py-10">
 
         <section className="rounded-[28px] border border-gray-200 bg-white p-6 text-gray-900 shadow-soft md:p-8">
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
@@ -735,8 +551,10 @@ const handleCoachSignIn = async (event: React.FormEvent) => {
             </div>
             <div className="rounded-2xl bg-gray-50 px-4 py-3 text-sm text-gray-700">
               <div className="font-semibold text-gray-900">Team: {selectedTeamLabel}</div>
-              {activeOrg?.code && (
-                <div className="text-xs text-gray-600">Team code hint: {activeOrg.code}</div>
+              {orgConfig?.orgCode && (
+                <div className="mt-1 text-xs text-gray-600">
+                  Organization Code: <span className="font-mono font-bold">{orgConfig.orgCode}</span>
+                </div>
               )}
             </div>
           </div>
@@ -859,7 +677,7 @@ const handleCoachSignIn = async (event: React.FormEvent) => {
                     </label>
 
                     <label className="flex flex-col gap-1 text-sm font-medium text-gray-700">
-                      4-digit team code
+                      Your 4-digit PIN
                       <input
                         className="field tracking-widest text-center text-base"
                         type="tel"
@@ -870,19 +688,32 @@ const handleCoachSignIn = async (event: React.FormEvent) => {
                         maxLength={4}
                         disabled={disabled}
                       />
+                      <span className="text-xs text-gray-500">
+                        This is your personal PIN. Ask your coach if this is your first time.
+                      </span>
                     </label>
 
                     <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
-                      Team email we will use:{" "}
-                      <span className="font-semibold text-gray-900">
-                        {athleteEmail || "firstlast@pl.strength"}
-                      </span>
-                      . No real inbox required - coaches manage the codes.
+                      <div className="mb-2">
+                        <span className="font-semibold text-gray-900">Organization: </span>
+                        {org?.name || "Not selected"}
+                      </div>
+                      {orgConfig?.orgCode && (
+                        <div className="text-xs text-gray-500">
+                          (System will use org code: <span className="font-mono">{orgConfig.orgCode}</span>)
+                        </div>
+                      )}
+                      <div className="mt-2 text-xs text-gray-500">
+                        Your email will be: <span className="font-semibold text-gray-900">
+                          {athleteEmail || (firstName && lastName ? `${sanitizeName(firstName).toLowerCase()}${sanitizeName(lastName).toLowerCase()}@${org?.id?.toLowerCase() || 'org'}.strength` : "firstlast@org.strength")}
+                        </span>
+                      </div>
                     </div>
 
                     <button
                       type="submit"
-                      className="btn btn-primary w-full justify-center py-3 text-base"
+                      className="btn w-full justify-center py-3 text-base text-white"
+                      style={{ background: primaryColor, borderColor: primaryColor }}
                       disabled={disabled}
                     >
                       {submitting && mode === "athlete" ? "Signing in..." : "Sign in"}
@@ -941,22 +772,32 @@ const handleCoachSignIn = async (event: React.FormEvent) => {
                         maxLength={16}
                         disabled={disabled}
                       />
+                      <span className="text-xs text-gray-500">
+                        Ask your program admin for the current coach passcode.
+                      </span>
                     </label>
 
                     <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
-                      Coach email we will use:{" "}
-                      <span className="font-semibold text-gray-900">
-                        {coachEmail || "coach-firstlast@pl.strength"}
-                      </span>
-                      . Share the passcode only with trusted staff.
+                      <div className="mb-2">
+                        <span className="font-semibold text-gray-900">Organization: </span>
+                        {org?.name || "Not selected"}
+                      </div>
+                      {orgConfig?.coachPasscode && (
+                        <div className="text-xs text-gray-500">
+                          Expected passcode: <span className="font-mono font-bold">{orgConfig.coachPasscode}</span>
+                        </div>
+                      )}
+                      <div className="mt-2 text-xs text-gray-500">
+                        Coach email: <span className="font-semibold text-gray-900">
+                          {coachEmail || (firstName && lastName ? `coach-${sanitizeName(firstName).toLowerCase()}${sanitizeName(lastName).toLowerCase()}@${org?.id?.toLowerCase() || 'org'}.strength` : "coach-firstlast@org.strength")}
+                        </span>
+                      </div>
                     </div>
-                    <p className="text-xs text-gray-500">
-                      Ask your program admin for the current passcode (configured via{" "}
-                      <code>VITE_COACH_PASSCODE</code>).
-                    </p>
+
                     <button
                       type="submit"
-                      className="btn btn-primary w-full justify-center py-3 text-base"
+                      className="btn w-full justify-center py-3 text-base text-white"
+                      style={{ background: primaryColor, borderColor: primaryColor }}
                       disabled={disabled}
                     >
                       {submitting && mode === "coach" ? "Signing in..." : "Sign in as coach"}
@@ -971,9 +812,6 @@ const handleCoachSignIn = async (event: React.FormEvent) => {
     </div>
   );
 }
-
-
-
 
 
 

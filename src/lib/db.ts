@@ -359,6 +359,8 @@ export type Profile = {
   accessCode?: string | null;
   equipment?: EquipmentSettings;
   currentWeek?: 1 | 2 | 3 | 4;
+  orgId?: string;
+  orgCode?: string;
 };
 
 const DEFAULT_PLATES: Record<Unit, number[]> = {
@@ -875,12 +877,13 @@ export async function advanceCycle(uid: string, tmIncreases?: {
 export const normalizePasscodeDigits = (code: string): string =>
   code.replace(/\D+/g, "").slice(0, 4);
 
-export const buildAthleteEmail = (firstName: string, lastName: string): string => {
+export const buildAthleteEmail = (firstName: string, lastName: string, orgId: string): string => {
   const canonical = `${firstName}${lastName}`.toLowerCase().replace(/[^a-z]/g, "");
-  return `${canonical}@pl.strength`;
+  const safeOrgId = (orgId || "pl").toLowerCase().replace(/[^a-z0-9]/g, "");
+  return `${canonical}@${safeOrgId}.strength`;
 };
 
-const passcodeToPassword = (code: string) => `${code}pl!`;
+const passcodeToPassword = (code: string, orgCode: string) => `${orgCode}-${code}`;
 
 export class AthleteAuthError extends Error {
   constructor(public readonly code: string, message: string) {
@@ -894,6 +897,8 @@ export type AthleteSignInOptions = {
   lastName: string;
   passcodeDigits: string;
   team?: Team | "";
+  orgId: string;
+  orgCode: string;
 };
 
 export type AthleteSignInResult = {
@@ -913,9 +918,11 @@ export async function signInOrCreateAthleteAccount(
   const first = options.firstName.trim();
   const last = options.lastName.trim();
   const code = options.passcodeDigits.trim();
+  const orgId = options.orgId.trim();
+  const orgCode = options.orgCode.trim();
 
-  const email = buildAthleteEmail(first, last);
-  const password = passcodeToPassword(code);
+  const email = buildAthleteEmail(first, last, orgId);
+  const password = passcodeToPassword(code, orgCode);
 
   let credential: UserCredential | null = null;
   let createdAccount = false;
@@ -990,6 +997,8 @@ export async function signInOrCreateAthleteAccount(
     tm: existingProfile?.tm ?? {},
     accessCode: code,
     equipment: normalizeEquipment(existingProfile?.equipment),
+    orgId,
+    orgCode,
   };
 
   await saveProfile(profile);
@@ -1949,3 +1958,59 @@ export async function fetchAthleteSessions(
     return [];
   }
 }
+
+// ---- Organization Management ----
+export type OrgConfig = {
+  name: string;
+  abbr: string;
+  logo: string;
+  orgCode: string;
+  coachPasscode: string;
+  primaryColor?: string;
+  secondaryColor?: string;
+  adminEmail?: string;
+  adminPhone?: string;
+  loginPath?: string;
+  createdAt?: number;
+  updatedAt?: number;
+};
+
+export async function fetchOrgConfig(orgId: string): Promise<OrgConfig | null> {
+  const database = fb.db;
+  if (!database) return null;
+  
+  try {
+    const orgRef = doc(database, "organizations", orgId.toUpperCase());
+    const snap = await getDoc(orgRef);
+    
+    if (!snap.exists()) return null;
+    
+    const data = snap.data();
+    return {
+      name: data.name || orgId,
+      abbr: data.abbr || orgId,
+      logo: data.logo || "/assets/dragon.png",
+      orgCode: data.orgCode || "",
+      coachPasscode: data.coachPasscode || "",
+      primaryColor: data.primaryColor,
+      secondaryColor: data.secondaryColor,
+      adminEmail: data.adminEmail,
+      adminPhone: data.adminPhone,
+      loginPath: data.loginPath,
+      createdAt: data.createdAt,
+      updatedAt: data.updatedAt,
+    };
+  } catch (err) {
+    console.warn("Failed to fetch org config", err);
+    return null;
+  }
+}
+
+export const buildCoachEmail = (firstName: string, lastName: string, orgId: string): string => {
+  const canonical = `${firstName}${lastName}`.toLowerCase().replace(/[^a-z]/g, "");
+  const safeOrgId = (orgId || "pl").toLowerCase().replace(/[^a-z0-9]/g, "");
+  return `coach-${canonical}@${safeOrgId}.strength`;
+};
+
+export const coachPassword = (orgCode: string, coachPasscode: string) => 
+  `${orgCode}-${coachPasscode}`;
