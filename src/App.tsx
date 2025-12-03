@@ -67,12 +67,17 @@ export default function App() {
   }
 
   const isHomePage = location.pathname === "/";
+  const isLoginPage = location.pathname === "/login" || 
+                      location.pathname === "/login-selection" || 
+                      location.pathname === "/DH" ||
+                      location.pathname === "/new-school" ||
+                      location.pathname.startsWith("/org/");
 
   return (
     <ActiveAthleteProvider>
       <OrgTheme />
       <div className="min-h-full flex flex-col">
-        {user && !isHomePage && (
+        {user && !isHomePage && !isLoginPage && (
           <>
             <Nav />
             <ActiveAthleteBanner />
