@@ -105,13 +105,19 @@ export default function Home() {
 
   return (
     <div className="min-h-screen w-full overflow-hidden bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white">
-      {/* Super Admin link - subtle, top right */}
-      <Link
-        to="/super-admin"
-        className="absolute top-4 right-4 z-50 rounded-full border border-white/20 bg-white/5 px-3 py-1.5 text-xs font-medium text-white/50 transition hover:border-white/40 hover:bg-white/10 hover:text-white/80"
-      >
-        🔧 Admin
-      </Link>
+      {/* Top bar with logo and admin link */}
+      <div className="absolute top-4 left-4 right-4 z-50 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <img src="/icons/icon-72.png" alt="AnchorOne" className="h-10 w-10 rounded-lg" />
+          <span className="text-xl font-bold text-white">AnchorOne</span>
+        </div>
+        <Link
+          to="/super-admin"
+          className="rounded-full border border-white/20 bg-white/5 px-3 py-1.5 text-xs font-medium text-white/50 transition hover:border-white/40 hover:bg-white/10 hover:text-white/80"
+        >
+          🔧 Admin
+        </Link>
+      </div>
       <main className="relative flex min-h-screen flex-col items-center justify-center gap-6 px-4 py-6">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.12),transparent_35%),radial-gradient(circle_at_80%_0%,rgba(255,255,255,0.08),transparent_25%)]" />
         <div className="relative z-10 w-full text-center">
