@@ -66,11 +66,13 @@ export default function App() {
     );
   }
 
+  const isHomePage = location.pathname === "/";
+
   return (
     <ActiveAthleteProvider>
       <OrgTheme />
       <div className="min-h-full flex flex-col">
-        {user && (
+        {user && !isHomePage && (
           <>
             <Nav />
             <ActiveAthleteBanner />

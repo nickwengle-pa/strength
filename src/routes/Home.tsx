@@ -106,10 +106,10 @@ export default function Home() {
   return (
     <div className="min-h-screen w-full overflow-hidden bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white">
       {/* Top bar with logo and admin link */}
-      <div className="absolute top-4 left-4 right-4 z-50 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <img src="/icons/icon-72.png" alt="AnchorOne" className="h-10 w-10 rounded-lg" />
-          <span className="text-xl font-bold text-white">AnchorOne</span>
+      <div className="absolute top-6 left-6 right-6 z-50 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <img src="/icons/icon-72.png" alt="AnchorOne" className="h-12 w-12 rounded-xl shadow-lg" />
+          <span className="text-2xl font-bold text-white">AnchorOne</span>
         </div>
         <Link
           to="/super-admin"
@@ -122,7 +122,7 @@ export default function Home() {
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.12),transparent_35%),radial-gradient(circle_at_80%_0%,rgba(255,255,255,0.08),transparent_25%)]" />
         <div className="relative z-10 w-full text-center">
           <h1 className="text-5xl font-black leading-tight md:text-6xl">
-            Pick your program
+            Pick Your Program
           </h1>
           <p className="mt-3 text-sm text-white/70 md:text-base">
             A clean, full-width 3D logo carousel. Click a logo or let it revolve.
