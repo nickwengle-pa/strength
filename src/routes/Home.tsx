@@ -106,11 +106,10 @@ export default function Home() {
   return (
     <div className="min-h-screen w-full overflow-hidden bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white">
       {/* Top bar with logo and admin link */}
-      <div className="absolute top-6 left-6 right-6 z-50 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <img src="/icons/icon-72.png" alt="AnchorOne" className="h-12 w-12 rounded-xl shadow-lg" />
-          <span className="text-2xl font-bold text-white">AnchorOne</span>
-        </div>
+      <div className="absolute top-6 left-6 z-50">
+        <img src="/logo.png" alt="AnchorOne" className="h-64 w-auto" />
+      </div>
+      <div className="absolute top-6 right-6 z-50">
         <Link
           to="/super-admin"
           className="rounded-full border border-white/20 bg-white/5 px-3 py-1.5 text-xs font-medium text-white/50 transition hover:border-white/40 hover:bg-white/10 hover:text-white/80"
