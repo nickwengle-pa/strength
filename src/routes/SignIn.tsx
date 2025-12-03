@@ -359,6 +359,12 @@ const handleCoachSignIn = async (event: React.FormEvent) => {
     ? normalizeCoachPasscode(adminCoachPasscodeFromEnv)
     : null;
   const isAdminOverride = adminExpected ? entered === adminExpected : false;
+  
+  // Check if this coach is the designated org admin by name match
+  const isOrgAdmin = orgConfig.adminFirstName && orgConfig.adminLastName
+    ? safeFirst.toLowerCase() === orgConfig.adminFirstName.toLowerCase() &&
+      safeLast.toLowerCase() === orgConfig.adminLastName.toLowerCase()
+    : false;
 
   if (entered !== expected && !isAdminOverride) {
     setMessage({
@@ -435,17 +441,17 @@ const handleCoachSignIn = async (event: React.FormEvent) => {
   }
 
   try {
-    if (isAdminOverride) {
+    if (isAdminOverride || isOrgAdmin) {
       await ensureAdminRole();
     } else {
       await ensureCoachRoleOnly();
     }
-    await waitForRoleSync(userUid, isAdminOverride);
+    await waitForRoleSync(userUid, isAdminOverride || isOrgAdmin);
   } catch (err: any) {
     console.warn("Failed to ensure coach/admin role", err);
     setMessage({
       kind: "error",
-      text: isAdminOverride
+      text: (isAdminOverride || isOrgAdmin)
         ? "Signed in, but we could not confirm admin access. Try the admin code again or contact support."
         : "Signed in, but we could not update coach permissions in Firestore. Ask an admin to confirm Firebase configuration.",
     });
@@ -511,7 +517,7 @@ const handleCoachSignIn = async (event: React.FormEvent) => {
     setTeam("");
     setSubmitting(false);
   }
-  navigate("/roster", { replace: true });
+  navigate("/team", { replace: true });
 };
 
   if (!org) {
@@ -538,6 +544,18 @@ const handleCoachSignIn = async (event: React.FormEvent) => {
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white">
       <div className="mx-auto flex max-w-4xl flex-col gap-10 px-4 py-10">
 
+        {/* Back to org carousel button */}
+        <div className="flex justify-start">
+          <button
+            type="button"
+            onClick={() => navigate("/")}
+            className="flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-medium text-white/80 hover:bg-white/20 hover:text-white transition"
+          >
+            <span>←</span>
+            <span>Change Program</span>
+          </button>
+        </div>
+
         <section className="rounded-[28px] border border-gray-200 bg-white p-6 text-gray-900 shadow-soft md:p-8">
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div>
@@ -551,11 +569,6 @@ const handleCoachSignIn = async (event: React.FormEvent) => {
             </div>
             <div className="rounded-2xl bg-gray-50 px-4 py-3 text-sm text-gray-700">
               <div className="font-semibold text-gray-900">Team: {selectedTeamLabel}</div>
-              {orgConfig?.orgCode && (
-                <div className="mt-1 text-xs text-gray-600">
-                  Organization Code: <span className="font-mono font-bold">{orgConfig.orgCode}</span>
-                </div>
-              )}
             </div>
           </div>
 
@@ -782,11 +795,6 @@ const handleCoachSignIn = async (event: React.FormEvent) => {
                         <span className="font-semibold text-gray-900">Organization: </span>
                         {org?.name || "Not selected"}
                       </div>
-                      {orgConfig?.coachPasscode && (
-                        <div className="text-xs text-gray-500">
-                          Expected passcode: <span className="font-mono font-bold">{orgConfig.coachPasscode}</span>
-                        </div>
-                      )}
                       <div className="mt-2 text-xs text-gray-500">
                         Coach email: <span className="font-semibold text-gray-900">
                           {coachEmail || (firstName && lastName ? `coach-${sanitizeName(firstName).toLowerCase()}${sanitizeName(lastName).toLowerCase()}@${org?.id?.toLowerCase() || 'org'}.strength` : "coach-firstlast@org.strength")}

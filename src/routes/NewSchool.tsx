@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { collection, doc, setDoc, updateDoc } from "firebase/firestore";
+import { collection, doc, setDoc, updateDoc, getDoc } from "firebase/firestore";
 import { fb } from "../lib/db";
 import { useNavigate } from "react-router-dom";
 
@@ -10,6 +10,8 @@ type FormState = {
   secondaryColor: string;
   adminEmail: string;
   adminPhone: string;
+  adminFirstName: string;
+  adminLastName: string;
   logoDataUrl?: string;
   inviteCode: string;
   orgCode: string;
@@ -23,6 +25,8 @@ const initialState: FormState = {
   secondaryColor: "#B9B9B9",
   adminEmail: "",
   adminPhone: "",
+  adminFirstName: "",
+  adminLastName: "",
   inviteCode: "",
   logoDataUrl: "",
   orgCode: "",
@@ -80,9 +84,30 @@ export default function NewSchool() {
       setError("Coach passcode is required.");
       return;
     }
+    if (!form.adminFirstName.trim() || !form.adminLastName.trim()) {
+      setError("Admin first and last name are required.");
+      return;
+    }
 
     setSubmitting(true);
     try {
+      // Validate invite code first - must exist and be active
+      const inviteRef = doc(db, "orgInvites", form.inviteCode.trim());
+      const inviteSnap = await getDoc(inviteRef);
+      
+      if (!inviteSnap.exists()) {
+        setError("Invalid invite code. Please check the code and try again.");
+        setSubmitting(false);
+        return;
+      }
+      
+      const inviteData = inviteSnap.data();
+      if (inviteData.active === false) {
+        setError("This invite code has already been used. Please request a new one.");
+        setSubmitting(false);
+        return;
+      }
+
       const docRef = doc(collection(db, "organizations"), trimmedAbbr);
       await setDoc(
         docRef,
@@ -94,6 +119,8 @@ export default function NewSchool() {
           secondaryColor: form.secondaryColor || "#B9B9B9",
           adminEmail: form.adminEmail.trim(),
           adminPhone: form.adminPhone.trim(),
+          adminFirstName: form.adminFirstName.trim(),
+          adminLastName: form.adminLastName.trim(),
           inviteCode: form.inviteCode.trim(),
           orgCode: form.orgCode.trim().toUpperCase(),
           coachPasscode: form.coachPasscode.trim().toUpperCase(),
@@ -102,9 +129,15 @@ export default function NewSchool() {
         },
         { merge: true }
       );
+      
+      // Mark invite as used immediately after org creation
       try {
-        const inviteRef = doc(db, "orgInvites", form.inviteCode.trim());
-        await updateDoc(inviteRef, { active: false, updatedAt: Date.now() });
+        await updateDoc(inviteRef, { 
+          active: false, 
+          usedBy: trimmedAbbr,
+          usedAt: Date.now(),
+          updatedAt: Date.now() 
+        });
       } catch (err) {
         console.warn("Could not mark invite as used", err);
       }
@@ -280,6 +313,30 @@ export default function NewSchool() {
               value={form.adminPhone}
               onChange={(e) => updateField("adminPhone", e.target.value)}
               placeholder="555-123-4567"
+            />
+          </label>
+
+          <label className="flex flex-col gap-1 text-sm font-semibold text-gray-700">
+            Admin First Name
+            <input
+              className="field"
+              value={form.adminFirstName}
+              onChange={(e) => updateField("adminFirstName", e.target.value)}
+              placeholder="John"
+              required
+            />
+            <span className="text-xs text-gray-500">
+              This person will be the org admin when they first log in as coach
+            </span>
+          </label>
+          <label className="flex flex-col gap-1 text-sm font-semibold text-gray-700">
+            Admin Last Name
+            <input
+              className="field"
+              value={form.adminLastName}
+              onChange={(e) => updateField("adminLastName", e.target.value)}
+              placeholder="Smith"
+              required
             />
           </label>
 

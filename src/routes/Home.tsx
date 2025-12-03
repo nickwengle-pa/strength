@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { collection, getDocs } from "firebase/firestore";
 import { fb } from "../lib/db";
 import { useOrg } from "../context/OrgContext";
@@ -105,6 +105,13 @@ export default function Home() {
 
   return (
     <div className="min-h-screen w-full overflow-hidden bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white">
+      {/* Super Admin link - subtle, top right */}
+      <Link
+        to="/super-admin"
+        className="absolute top-4 right-4 z-50 rounded-full border border-white/20 bg-white/5 px-3 py-1.5 text-xs font-medium text-white/50 transition hover:border-white/40 hover:bg-white/10 hover:text-white/80"
+      >
+        🔧 Admin
+      </Link>
       <main className="relative flex min-h-screen flex-col items-center justify-center gap-6 px-4 py-6">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.12),transparent_35%),radial-gradient(circle_at_80%_0%,rgba(255,255,255,0.08),transparent_25%)]" />
         <div className="relative z-10 w-full text-center">
@@ -130,7 +137,7 @@ export default function Home() {
           )}
         </div>
 
-        <div className="relative w-full" style={{ transform: "translateY(-140px)" }}>
+        <div className="relative w-full mt-12">
           <div className="carousel-3d mx-auto" role="listbox" aria-label="Team selector">
             {teams.map((item, index) => {
               const rawOffset = index - activeSlide;
@@ -141,11 +148,11 @@ export default function Home() {
                   : rawOffset < -half
                   ? rawOffset + teams.length
                   : rawOffset;
-              const depth = 520 - Math.abs(offset) * 120;
-              const translateX = offset * 320;
-              const rotateY = offset * -25;
+              const depth = 260 - Math.abs(offset) * 60;
+              const translateX = offset * 160;
+              const rotateY = offset * -20;
               const opacity = Math.max(0, 1 - Math.abs(offset) * 0.14);
-              const scale = offset === 0 ? 1.12 : 0.82;
+              const scale = offset === 0 ? 1 : 0.75;
 
               return (
                 <button
@@ -171,12 +178,12 @@ export default function Home() {
                     navigate(item.loginPath ?? "/login-selection");
                   }}
                 >
-                  <div className="relative flex h-full flex-col items-center justify-center gap-3 p-4">
+                  <div className="relative flex h-full flex-col items-center justify-center gap-2 p-3">
                     <div
-                      className="overflow-hidden rounded-3xl shadow-2xl ring-4 ring-white/15"
+                      className="overflow-hidden rounded-2xl shadow-2xl ring-2 ring-white/15"
                       style={{
-                        width: "clamp(200px, 24vw, 300px)",
-                        height: "clamp(200px, 24vw, 300px)",
+                        width: "clamp(100px, 12vw, 150px)",
+                        height: "clamp(100px, 12vw, 150px)",
                       }}
                     >
                       <img
@@ -186,10 +193,10 @@ export default function Home() {
                       />
                     </div>
                     <div className="text-center">
-                      <p className="text-sm font-semibold uppercase tracking-wide text-white/80">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-white/80">
                         {item.subtitle}
                       </p>
-                      <p className="text-2xl font-black leading-tight text-white">
+                      <p className="text-lg font-black leading-tight text-white">
                         {item.name}
                       </p>
                     </div>
@@ -201,9 +208,9 @@ export default function Home() {
 
         </div>
 
-        <div className="relative w-full mt-64 flex items-center justify-center">
+        <div className="relative w-full mt-8 flex items-center justify-center">
           <div className="flex items-center justify-center gap-3">
-            {CAROUSEL_TEAMS.map((_, index) => (
+            {teams.map((_, index) => (
               <button
                 key={index}
                 type="button"

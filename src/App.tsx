@@ -24,6 +24,7 @@ import OrgLogin from "./routes/OrgLogin";
 import NewSchool from "./routes/NewSchool";
 import AdminInvites from "./routes/AdminInvites";
 import SuperAdmin from "./routes/SuperAdmin";
+import OrgSettings from "./routes/OrgSettings";
 import { useAuth } from "./lib/auth";
 import { ActiveAthleteProvider } from "./context/ActiveAthleteContext";
 import { useOrg } from "./context/OrgContext";
@@ -34,7 +35,7 @@ export default function App() {
   const navigate = useNavigate();
   const { org } = useOrg();
 
-  const publicPaths = ["/", "/login", "/login-selection", "/DH", "/new-school"];
+  const publicPaths = ["/", "/login", "/login-selection", "/DH", "/new-school", "/super-admin"];
 
   if (initializing || signingInWithLink) {
     return (
@@ -48,8 +49,21 @@ export default function App() {
     publicPaths.includes(location.pathname) ||
     location.pathname.startsWith("/org/");
 
+  const isSuperAdminRoute = location.pathname === "/super-admin";
+
   if (!user && !isPublic) {
     return <SignIn />;
+  }
+
+  // Super Admin gets its own standalone layout (no org nav)
+  if (isSuperAdminRoute) {
+    return (
+      <div className="min-h-full flex flex-col">
+        <main className="flex-1">
+          <SuperAdmin />
+        </main>
+      </div>
+    );
   }
 
   return (
@@ -79,6 +93,7 @@ export default function App() {
             <Route path="/org/:abbr" element={<OrgLogin />} />
             <Route path="/new-school" element={<NewSchool />} />
             <Route path="/login" element={<SignIn />} />
+            <Route path="/team" element={<TeamDashboard />} />
             <Route path="/session" element={<Session />} />
             <Route path="/summary" element={<Summary />} />
             <Route path="/progress" element={<Progress />} />
@@ -92,6 +107,7 @@ export default function App() {
             <Route path="/quick-summary" element={<QuickSummary />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/admin/invites" element={<AdminInvites />} />
+            <Route path="/org-settings" element={<OrgSettings />} />
             <Route path="/super-admin" element={<SuperAdmin />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="*" element={<Navigate to="/" replace />} />

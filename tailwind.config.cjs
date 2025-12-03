@@ -5,16 +5,16 @@ module.exports = {
     extend: {
       colors: {
         brand: {
-          50:  "#fff1f2",
-          100: "#ffe4e6",
-          200: "#fecdd3",
-          300: "#fda4af",
-          400: "#fb7185",
-          500: "#ef4444",
-          600: "#7a0f18", /* Dragons primary */
-          700: "#640d14",
-          800: "#4c0a10",
-          900: "#33070b"
+          50:  "color-mix(in srgb, var(--org-primary, #7a0f18) 5%, white)",
+          100: "color-mix(in srgb, var(--org-primary, #7a0f18) 10%, white)",
+          200: "color-mix(in srgb, var(--org-primary, #7a0f18) 20%, white)",
+          300: "color-mix(in srgb, var(--org-primary, #7a0f18) 30%, white)",
+          400: "color-mix(in srgb, var(--org-primary, #7a0f18) 50%, white)",
+          500: "color-mix(in srgb, var(--org-primary, #7a0f18) 70%, white)",
+          600: "var(--org-primary, #7a0f18)",
+          700: "color-mix(in srgb, var(--org-primary, #7a0f18) 100%, black 15%)",
+          800: "color-mix(in srgb, var(--org-primary, #7a0f18) 100%, black 30%)",
+          900: "color-mix(in srgb, var(--org-primary, #7a0f18) 100%, black 45%)"
         }
       },
       boxShadow: {

@@ -7,6 +7,7 @@ import {
   hasFirebase,
   isCoach,
   isAdmin,
+  isSuperAdmin,
   subscribeToRoleChanges,
   setStoredTeamSelection,
   type Team,
@@ -25,6 +26,7 @@ export default function Nav() {
   const [status, setStatus] = useState<Status>("checking");
   const [coach, setCoach] = useState(false);
   const [admin, setAdmin] = useState(false);
+  const [superAdmin, setSuperAdmin] = useState(false);
   const [friendlyName, setFriendlyName] = useState<string>("");
   const [menuOpen, setMenuOpen] = useState(false);
   const [teamSelection, setTeamSelection] = useState<Team | "">("");
@@ -41,6 +43,9 @@ export default function Nav() {
       setStatus("offline");
     }
 
+    // Check super admin status
+    setSuperAdmin(isSuperAdmin(user?.uid));
+
     if (!ready || !user) {
       setCoach(false);
       setAdmin(false);
@@ -49,6 +54,8 @@ export default function Nav() {
       };
     }
 
+    // Trigger a fresh role fetch when user changes
+    // The subscription will update the state
     (async () => {
       try {
         const [coachFlag, adminFlag] = await Promise.all([
@@ -60,10 +67,7 @@ export default function Nav() {
           setAdmin(adminFlag);
         }
       } catch {
-        if (active) {
-          setCoach(false);
-          setAdmin(false);
-        }
+        // Roles will be updated via subscription
       }
     })();
 
@@ -204,21 +208,27 @@ export default function Nav() {
   ];
 
   const coachLinks = [
-    { to: "/team", label: "Home" },
+    { to: "/team", label: "Team Dashboard" },
+    { to: "/summary", label: "Quick Summary" },
     { to: "/roster", label: "Roster" },
     { to: "/attendance", label: "Attendance" },
     { to: "/session", label: "Session" },
     { to: "/calculator", label: "Calculator" },
     { to: "/progress", label: "Progress" },
     { to: "/sheets", label: "Sheets" },
-    { to: "/program-outline", label: "Program" },
+    { to: "/program-outline", label: "Program Outline" },
     { to: "/exercises", label: "Exercises" },
     { to: "/profile", label: "Profile" },
     { to: "/guide", label: "Guide" },
+    { to: "/quick-summary", label: "Quick Summary (Old)" },
   ];
 
   const baseLinks = coach ? coachLinks : athleteLinks;
-  const links = (admin || coach) ? [...baseLinks, { to: "/admin", label: admin ? "Admin" : "Team" }] : baseLinks;
+  const adminLinks = admin ? [
+    { to: "/admin", label: "Admin" },
+    { to: "/org-settings", label: "Org Settings" },
+  ] : [];
+  const links = coach ? [...baseLinks, ...adminLinks] : baseLinks;
 
   const isMobile = device.isMobile || (device.isTouch && !device.isDesktop);
 
@@ -364,6 +374,15 @@ export default function Nav() {
                   Admin
                 </span>
               )}
+              {superAdmin && (
+                <NavLink
+                  to="/super-admin"
+                  className="inline-flex items-center rounded-full border px-3 py-1 text-xs md:text-sm font-semibold transition-colors"
+                  style={{ borderColor: '#f97316', backgroundColor: '#fff7ed', color: '#ea580c' }}
+                >
+                  🔧 Super Admin
+                </NavLink>
+              )}
               {coach && !admin && (
                 <span className="inline-flex items-center rounded-full border px-3 py-1 text-xs md:text-sm font-semibold"
                   style={{ borderColor: brandColorLight, backgroundColor: brandColorVeryLight, color: brandColor }}
@@ -420,6 +439,16 @@ export default function Nav() {
                   >
                     Admin mode
                   </span>
+                )}
+                {superAdmin && (
+                  <NavLink
+                    to="/super-admin"
+                    className="flex items-center justify-between rounded-xl border-2 px-4 py-2 text-base font-semibold"
+                    style={{ borderColor: '#f97316', backgroundColor: '#fff7ed', color: '#ea580c' }}
+                    onClick={closeMenu}
+                  >
+                    🔧 Super Admin
+                  </NavLink>
                 )}
                 {coach && !admin && (
                   <span className="flex items-center justify-between rounded-xl border-2 px-4 py-2 text-base font-semibold"

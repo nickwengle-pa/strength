@@ -11,6 +11,13 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == uid;
     }
 
+    // Super admin UIDs (app creator level access)
+    function isSuperAdmin() {
+      return isSignedIn() && request.auth.uid in [
+        "ShEMxXLKysgaaeLx0odLbhJ68oQ2"
+      ];
+    }
+
     function rolesDocExists(uid) {
       return exists(/databases/$(database)/documents/roles/$(uid));
     }
@@ -36,12 +43,17 @@ service cloud.firestore {
       return isSignedIn() && hasRole(request.auth.uid, "admin");
     }
 
+    // Get user profile from root profiles collection
     function getUserProfile(uid) {
-      return get(/databases/$(database)/documents/athletes/$(uid)/profile/main);
+      return get(/databases/$(database)/documents/profiles/$(uid));
+    }
+
+    function userProfileExists(uid) {
+      return exists(/databases/$(database)/documents/profiles/$(uid));
     }
 
     function userOrgId() {
-      return isSignedIn() && exists(/databases/$(database)/documents/athletes/$(request.auth.uid)/profile/main)
+      return isSignedIn() && userProfileExists(request.auth.uid)
         ? getUserProfile(request.auth.uid).data.orgId
         : null;
     }
@@ -120,7 +132,7 @@ service cloud.firestore {
     }
 
     function orgAllowedKeys() {
-      return ["name", "abbr", "logo", "orgCode", "coachPasscode", "primaryColor", "secondaryColor", "adminEmail", "adminPhone", "loginPath", "createdAt", "updatedAt", "inviteCode"];
+      return ["name", "abbr", "logo", "orgCode", "coachPasscode", "primaryColor", "secondaryColor", "adminEmail", "adminPhone", "adminFirstName", "adminLastName", "loginPath", "createdAt", "updatedAt", "inviteCode"];
     }
 
     function orgCreateShape() {
@@ -150,6 +162,18 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // Root-level profiles collection
+    match /profiles/{uid} {
+      allow read: if isSignedIn() && (
+        isSelf(uid) ||
+        isCoach() ||
+        isAdmin()
+      );
+      allow create: if isSignedIn() && (isSelf(uid) || isCoach() || isAdmin());
+      allow update: if isSignedIn() && (isSelf(uid) || isCoach() || isAdmin());
+      allow delete: if isSignedIn() && (isSelf(uid) || isAdmin());
+    }
+
     match /athleteCodes/{code} {
       allow read: if isSignedIn();
       allow create, update: if isSignedIn()
@@ -166,17 +190,17 @@ service cloud.firestore {
 
     match /athletes/{uid}/profile/{doc} {
       allow read: if isSignedIn() && (
-        (request.auth.uid == uid && belongsToUserOrg(resource.data.orgId)) ||
-        (isCoach() && belongsToUserOrg(resource.data.orgId)) ||
+        request.auth.uid == uid ||
+        isCoach() ||
         isAdmin()
       );
       allow create, update: if isSignedIn() && (
-        (request.auth.uid == uid && belongsToUserOrg(request.resource.data.orgId)) ||
-        (isCoach() && belongsToUserOrg(request.resource.data.orgId)) ||
+        request.auth.uid == uid ||
+        isCoach() ||
         isAdmin()
       );
       allow delete: if isSignedIn() && (
-        (request.auth.uid == uid && belongsToUserOrg(resource.data.orgId)) || 
+        request.auth.uid == uid || 
         isAdmin()
       );
     }
@@ -187,8 +211,8 @@ service cloud.firestore {
 
     match /athletes/{uid}/sessions/{sid} {
       allow read, write: if isSignedIn() && (
-        (request.auth.uid == uid && belongsToUserOrg(get(/databases/$(database)/documents/athletes/$(uid)/profile/main).data.orgId)) ||
-        (isCoach() && belongsToUserOrg(get(/databases/$(database)/documents/athletes/$(uid)/profile/main).data.orgId)) ||
+        request.auth.uid == uid ||
+        isCoach() ||
         isAdmin()
       );
     }
@@ -203,19 +227,19 @@ service cloud.firestore {
     match /organizations/{orgId} {
       allow read: if true;
       allow create: if orgCreateShape() && validInvite();
-      allow update: if isAdmin() && orgCreateShape();
-      allow delete: if isAdmin();
+      allow update: if isAdmin() || isSuperAdmin();
+      allow delete: if isAdmin() || isSuperAdmin();
     }
 
-    // Org invites: pre-seeded by admin, consumed once by onboarding
+    // Org invites: created by super admin, consumed once by onboarding
     match /orgInvites/{code} {
       allow read: if true;
-      allow create: if isAdmin();
+      allow create: if isSuperAdmin();
       allow update: if
         resource.data.active == true
-        && request.resource.data.keys().hasOnly(["active", "updatedAt"])
+        && request.resource.data.keys().hasOnly(["active", "usedBy", "usedAt", "updatedAt"])
         && request.resource.data.active == false;
-      allow delete: if isAdmin();
+      allow delete: if isSuperAdmin();
     }
   }
 }

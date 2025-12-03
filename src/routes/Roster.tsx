@@ -23,6 +23,7 @@ import {
   type Team,
 } from "../lib/db";
 import { useActiveAthlete } from "../context/ActiveAthleteContext";
+import { useOrg } from "../context/OrgContext";
 import { StatCardSkeleton } from "../components/LoadingSkeleton";
 
 const LIFT_KEYS = ["bench", "squat", "deadlift", "press"] as const;
@@ -95,6 +96,7 @@ export default function Roster() {
   const [cycleAdvancing, setCycleAdvancing] = useState(false);
   const [tmSuggestions, setTmSuggestions] = useState<Record<string, number> | null>(null);
   const { setActiveAthlete, isCoach } = useActiveAthlete();
+  const { org } = useOrg();
   const [isAdminUser, setIsAdminUser] = useState(false);
   const [coachTeam, setCoachTeam] = useState<Team | null>(null);
   const [coachLevelFilter, setCoachLevelFilter] = useState<"varsity" | "juniorHigh" | "both">("both");
@@ -117,10 +119,10 @@ export default function Roster() {
 
   useEffect(() => {
     (async () => {
-      try { setRows(await listRoster()); }
+      try { setRows(await listRoster(org?.id)); }
       catch (e:any) { setErr(e?.message || String(e)); }
     })();
-  }, []);
+  }, [org?.id]);
 
   useEffect(() => {
     if (!flash) return;

@@ -58,6 +58,17 @@ Object.defineProperties(fb, {
 
 export const hasFirebase = (): boolean => !!resolveHandles();
 
+// ---- Super Admin ----
+const SUPER_ADMIN_UIDS = [
+  "ShEMxXLKysgaaeLx0odLbhJ68oQ2",
+  // Add more super admin UIDs as needed
+];
+
+export function isSuperAdmin(uid?: string | null): boolean {
+  if (!uid) return false;
+  return SUPER_ADMIN_UIDS.includes(uid);
+}
+
 // ---- Profile model ----
 export type Unit = "lb" | "kg";
 export type Sport = "football" | "basketball";
@@ -487,8 +498,9 @@ export const normalizeEquipment = (
   return result;
 };
 
-const profRef = (database: Firestore, orgId: string, uid: string) =>
-  orgDoc(database, orgId, "athletes", uid, "profile", "main");
+// Profiles are stored at root level: profiles/{uid}
+const profRef = (database: Firestore, uid: string) =>
+  doc(database, "profiles", uid);
 
 let ensurePromise: Promise<string> | null = null;
 let roleCache: string[] | null = null;
@@ -522,11 +534,13 @@ const emitRoleChange = (roles: string[]) => {
   });
 };
 
-const applyRoleCache = (roles: string[]) => {
+const applyRoleCache = (roles: string[], forceEmit = false) => {
   const canonical = canonicalizeRoles(roles);
-  if (roleCache && rolesMatch(roleCache, canonical)) return;
+  const changed = !roleCache || !rolesMatch(roleCache, canonical);
   roleCache = canonical;
-  emitRoleChange(canonical);
+  if (changed || forceEmit) {
+    emitRoleChange(canonical);
+  }
 };
 
 const clearRoleCache = () => {
@@ -571,8 +585,9 @@ export async function ensureAnon(): Promise<string> {
   return ensurePromise;
 }
 
-const roleRef = (database: Firestore, orgId: string, uid: string) =>
-  orgDoc(database, orgId, "roles", uid);
+// Roles are stored at root level: roles/{uid}
+const roleRef = (database: Firestore, uid: string) =>
+  doc(database, "roles", uid);
 
 const sanitizeRoleArray = (value: unknown): string[] => {
   if (!Array.isArray(value)) return [];
@@ -700,13 +715,13 @@ export async function refreshRoles(targetUid?: string): Promise<string[]> {
   const database = handles?.db;
   const uid = targetUid ?? auth?.currentUser?.uid;
   if (!database || !uid) {
-    applyRoleCache([]);
+    applyRoleCache([], true);
     return [];
   }
   const snap = await getDoc(roleRef(database, uid));
   const data = snap.data();
   const roles = snap.exists() ? normalizeRoles(data) : [];
-  applyRoleCache(roles);
+  applyRoleCache(roles, true);  // Force emit to notify all subscribers
   if (snap.exists()) {
     await maybeRepairLegacyRoleDoc(database, uid, roles, data);
   }
@@ -787,6 +802,13 @@ export async function saveProfile(p: Profile, options?: { skipLocal?: boolean })
     accessCode: normalizedProfile.accessCode ?? null,
     equipment: normalizedEquipment,
   };
+  // Include orgId and orgCode if provided - required for roster filtering
+  if (normalizedProfile.orgId) {
+    payload.orgId = normalizedProfile.orgId;
+  }
+  if (normalizedProfile.orgCode) {
+    payload.orgCode = normalizedProfile.orgCode;
+  }
   if (normalizedProfile.currentWeek) {
     payload.currentWeek = normalizedProfile.currentWeek;
   }
@@ -1010,7 +1032,7 @@ export async function signInOrCreateAthleteAccount(
   };
 }
 
-// listRoster via collectionGroup("profile")
+// listRoster via profiles collection
 export type RosterEntry = {
   uid: string;
   firstName?: string;
@@ -1019,11 +1041,13 @@ export type RosterEntry = {
   team?: Team;
   accessCode?: string | null;
   roles?: string[];
+  orgId?: string;
 };
 
-export async function listRoster(): Promise<RosterEntry[]> {
+export async function listRoster(orgId?: string): Promise<RosterEntry[]> {
   const handles = resolveHandles();
   const database = handles?.db;
+  const auth = handles?.auth;
   if (!database) return [];
   try {
     await ensureAnon();
@@ -1031,15 +1055,33 @@ export async function listRoster(): Promise<RosterEntry[]> {
     console.warn("ensureAnon failed before listRoster", err);
   }
   
+  // Get current user's orgId if not provided
+  let filterOrgId = orgId;
+  if (!filterOrgId && auth?.currentUser?.uid) {
+    try {
+      const userProfileSnap = await getDoc(profRef(database, auth.currentUser.uid));
+      if (userProfileSnap.exists()) {
+        filterOrgId = userProfileSnap.data().orgId;
+      }
+    } catch (err) {
+      console.warn("Failed to get user orgId for roster filter", err);
+    }
+  }
   
-  const cg = collectionGroup(database, "profile");
-  const snap = await getDocs(cg);
+  // Query root profiles collection
+  const profilesRef = collection(database, "profiles");
+  let q;
+  if (filterOrgId) {
+    q = query(profilesRef, where("orgId", "==", filterOrgId));
+  } else {
+    q = profilesRef;
+  }
+  const snap = await getDocs(q);
 
   const rows = await Promise.all(
     snap.docs.map(async (docSnap) => {
       const data = docSnap.data();
-      const parts = docSnap.ref.path.split("/");
-      const uid = parts[1] || data.uid;
+      const uid = docSnap.id || data.uid;
       let roles: string[] = [];
       try {
         const roleSnap = await getDoc(roleRef(database, uid));
@@ -1056,6 +1098,7 @@ export async function listRoster(): Promise<RosterEntry[]> {
         team: normalizeTeam(data.team),
         accessCode: data.accessCode ?? null,
         roles,
+        orgId: data.orgId,
       };
     })
   );
@@ -1425,13 +1468,17 @@ export async function ensureCoachRoleOnly(): Promise<void> {
     payload.accessHistory = existing.accessHistory;
   }
 
-  // Preserve any existing coach access
-  payload["accessHistory.2468"] = {
+  // Preserve any existing coach access - only include defined values
+  const accessHistoryEntry: Record<string, unknown> = {
     roles: ["coach"],
     teamScopes: existing?.teamScopes || [],
-    teamAnchor: existing?.teamAnchor,
     lastUsed: serverTimestamp()
   };
+  // Only add teamAnchor if it exists
+  if (existing?.teamAnchor) {
+    accessHistoryEntry.teamAnchor = existing.teamAnchor;
+  }
+  payload["accessHistory.2468"] = accessHistoryEntry;
 
   await setDoc(ref, payload, { merge: true });
   applyRoleCache(filtered);
@@ -1970,6 +2017,8 @@ export type OrgConfig = {
   secondaryColor?: string;
   adminEmail?: string;
   adminPhone?: string;
+  adminFirstName?: string;
+  adminLastName?: string;
   loginPath?: string;
   createdAt?: number;
   updatedAt?: number;
@@ -1996,6 +2045,8 @@ export async function fetchOrgConfig(orgId: string): Promise<OrgConfig | null> {
       secondaryColor: data.secondaryColor,
       adminEmail: data.adminEmail,
       adminPhone: data.adminPhone,
+      adminFirstName: data.adminFirstName,
+      adminLastName: data.adminLastName,
       loginPath: data.loginPath,
       createdAt: data.createdAt,
       updatedAt: data.updatedAt,
@@ -2009,8 +2060,13 @@ export async function fetchOrgConfig(orgId: string): Promise<OrgConfig | null> {
 export const buildCoachEmail = (firstName: string, lastName: string, orgId: string): string => {
   const canonical = `${firstName}${lastName}`.toLowerCase().replace(/[^a-z]/g, "");
   const safeOrgId = (orgId || "pl").toLowerCase().replace(/[^a-z0-9]/g, "");
-  return `coach-${canonical}@${safeOrgId}.strength`;
+  // Use a proper email format that Firebase accepts
+  return `coach-${canonical}-${safeOrgId}@plstrength.app`;
 };
 
-export const coachPassword = (orgCode: string, coachPasscode: string) => 
-  `${orgCode}-${coachPasscode}`;
+export const coachPassword = (orgCode: string, coachPasscode: string) => {
+  // Firebase requires passwords to be at least 6 characters
+  const base = `${orgCode}-${coachPasscode}`;
+  // Pad with a constant suffix if too short
+  return base.length >= 6 ? base : base + "!coach";
+};
