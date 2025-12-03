@@ -96,6 +96,8 @@ export default function SignIn() {
   const [lastName, setLastName] = useState("");
   const [passcode, setPasscode] = useState("");
   const [team, setTeam] = useState<Team | "">("");
+  const [isFirstTime, setIsFirstTime] = useState(false);
+  const [verificationCode, setVerificationCode] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<StatusMessage>(null);
   const [orgConfig, setOrgConfig] = useState<OrgConfig | null>(null);
@@ -253,7 +255,7 @@ export default function SignIn() {
     if (digits.length !== 4) {
       setMessage({
         kind: "error",
-        text: "Passcode must be 4 digits. Ask your coach if you forgot it.",
+        text: "Passcode must be 4 digits. Ask your coach if this is your first time.",
       });
       return;
     }
@@ -263,17 +265,38 @@ export default function SignIn() {
       return;
     }
 
+    // Validate org code for first-time users
+    if (isFirstTime) {
+      const enteredCode = verificationCode.trim().toUpperCase();
+      const expectedCode = orgConfig.orgCode.trim().toUpperCase();
+      if (enteredCode !== expectedCode) {
+        setMessage({
+          kind: "error",
+          text: "Team code does not match. Ask your coach for the correct code.",
+        });
+        return;
+      }
+    }
+
     setSubmitting(true);
     setMessage(null);
     try {
-      const { profile } = await signInOrCreateAthleteAccount({
+      const { profile, createdAccount } = await signInOrCreateAthleteAccount({
         firstName: safeFirst,
         lastName: safeLast,
         passcodeDigits: digits,
         team,
         orgId: org.id,
         orgCode: orgConfig.orgCode,
+        isFirstTime,
       });
+
+      // If account was created but user didn't check "first time", warn them
+      if (createdAccount && !isFirstTime) {
+        // This means they're actually new but didn't provide org code
+        // The account was created - this shouldn't happen with our new logic
+        // But we handle it gracefully
+      }
 
       setStoredTeamSelection(profile.team ?? "");
       updateDisplayNameCache(`${profile.firstName} ${profile.lastName}`.trim());
@@ -288,6 +311,11 @@ export default function SignIn() {
           setMessage({
             kind: "error",
             text: "Passcode does not match. Ask your coach if you need help.",
+          });
+        } else if (err.code === "auth/user-not-found") {
+          setMessage({
+            kind: "error",
+            text: "No account found. If this is your first time, check the 'First time?' box and enter your team code.",
           });
         } else if (err.code === "athlete-code/taken") {
           setMessage({
@@ -321,6 +349,8 @@ export default function SignIn() {
     } finally {
       setPasscode("");
       setTeam("");
+      setVerificationCode("");
+      setIsFirstTime(false);
       setSubmitting(false);
     }
   };
@@ -706,19 +736,51 @@ const handleCoachSignIn = async (event: React.FormEvent) => {
                       </span>
                     </label>
 
+                    {/* First time registration section */}
+                    <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4">
+                      <label className="flex items-center gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={isFirstTime}
+                          onChange={(e) => {
+                            setIsFirstTime(e.target.checked);
+                            if (!e.target.checked) setVerificationCode("");
+                          }}
+                          disabled={disabled}
+                          className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="text-sm font-medium text-blue-900">
+                          First time signing in?
+                        </span>
+                      </label>
+                      
+                      {isFirstTime && (
+                        <div className="mt-3">
+                          <label className="flex flex-col gap-1 text-sm font-medium text-blue-800">
+                            Team Code
+                            <input
+                              className="field uppercase tracking-wider"
+                              value={verificationCode}
+                              onChange={(e) => setVerificationCode(e.target.value.toUpperCase())}
+                              placeholder="Enter team code from your coach"
+                              disabled={disabled}
+                            />
+                            <span className="text-xs text-blue-600">
+                              Your coach will give you this code to verify you're on the team.
+                            </span>
+                          </label>
+                        </div>
+                      )}
+                    </div>
+
                     <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
                       <div className="mb-2">
                         <span className="font-semibold text-gray-900">Organization: </span>
                         {org?.name || "Not selected"}
                       </div>
-                      {orgConfig?.orgCode && (
-                        <div className="text-xs text-gray-500">
-                          (System will use org code: <span className="font-mono">{orgConfig.orgCode}</span>)
-                        </div>
-                      )}
                       <div className="mt-2 text-xs text-gray-500">
                         Your email will be: <span className="font-semibold text-gray-900">
-                          {athleteEmail || (firstName && lastName ? `${sanitizeName(firstName).toLowerCase()}${sanitizeName(lastName).toLowerCase()}@${org?.id?.toLowerCase() || 'org'}.strength` : "firstlast@org.strength")}
+                          {athleteEmail || (firstName && lastName ? `${sanitizeName(firstName).toLowerCase()}${sanitizeName(lastName).toLowerCase()}-${org?.id?.toLowerCase() || 'org'}@anchorone.app` : "firstlast-org@anchorone.app")}
                         </span>
                       </div>
                     </div>

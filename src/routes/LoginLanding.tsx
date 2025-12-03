@@ -10,9 +10,9 @@ type LoginLandingProps = {
 };
 
 export default function LoginLanding({
-  orgName = "PL Strength",
+  orgName = "AnchorOne",
   logoSrc = "/assets/dragon.png",
-  titlePrefix = "PL Strength",
+  titlePrefix = "AnchorOne",
   primaryColor = "#8B1C21",
   secondaryColor = "#B9B9B9",
 }: LoginLandingProps) {

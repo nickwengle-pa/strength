@@ -902,10 +902,15 @@ export const normalizePasscodeDigits = (code: string): string =>
 export const buildAthleteEmail = (firstName: string, lastName: string, orgId: string): string => {
   const canonical = `${firstName}${lastName}`.toLowerCase().replace(/[^a-z]/g, "");
   const safeOrgId = (orgId || "pl").toLowerCase().replace(/[^a-z0-9]/g, "");
-  return `${canonical}@${safeOrgId}.strength`;
+  // Use a proper email format that Firebase accepts
+  return `${canonical}-${safeOrgId}@anchorone.app`;
 };
 
-const passcodeToPassword = (code: string, orgCode: string) => `${orgCode}-${code}`;
+const passcodeToPassword = (code: string, orgCode: string) => {
+  // Firebase requires passwords to be at least 6 characters
+  const base = `${orgCode}-${code}`;
+  return base.length >= 6 ? base : base + "!athlete";
+};
 
 export class AthleteAuthError extends Error {
   constructor(public readonly code: string, message: string) {
@@ -921,6 +926,7 @@ export type AthleteSignInOptions = {
   team?: Team | "";
   orgId: string;
   orgCode: string;
+  isFirstTime?: boolean; // Must be true to create new account
 };
 
 export type AthleteSignInResult = {
@@ -942,6 +948,7 @@ export async function signInOrCreateAthleteAccount(
   const code = options.passcodeDigits.trim();
   const orgId = options.orgId.trim();
   const orgCode = options.orgCode.trim();
+  const allowCreate = options.isFirstTime === true;
 
   const email = buildAthleteEmail(first, last, orgId);
   const password = passcodeToPassword(code, orgCode);
@@ -953,9 +960,17 @@ export async function signInOrCreateAthleteAccount(
     credential = await signInWithEmailAndPassword(auth, email, password);
   } catch (err) {
     const error = err as AuthError;
-    const canCreate =
+    const userNotFound =
       error.code === "auth/user-not-found" || error.code === "auth/invalid-credential";
-    if (canCreate) {
+    
+    if (userNotFound) {
+      // Only create account if user explicitly marked "first time" and provided org code
+      if (!allowCreate) {
+        throw new AthleteAuthError(
+          "auth/user-not-found",
+          "No account found. If this is your first time, check the 'First time?' box and enter your team code."
+        );
+      }
       credential = await createUserWithEmailAndPassword(auth, email, password);
       createdAccount = true;
     } else if (error.code === "auth/wrong-password") {
@@ -980,6 +995,7 @@ export async function signInOrCreateAthleteAccount(
   const codeStatus = await ensureAthleteCode(
     uid,
     code,
+    orgId,
     existingProfile?.accessCode ?? null
   );
 
@@ -1779,21 +1795,23 @@ export type AthleteCodeStatus = "ok" | "taken" | "unavailable";
 export async function ensureAthleteCode(
   uid: string,
   code: string,
+  orgId: string,
   previous?: string | null
 ): Promise<AthleteCodeStatus> {
   const trimmed = (code ?? "").trim();
-  if (!trimmed) return "unavailable";
+  const safeOrgId = (orgId || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  if (!trimmed || !safeOrgId) return "unavailable";
 
   const handles = resolveHandles();
   const database = handles?.db;
   if (!database) return "ok";
 
-  const newRef = doc(database, "athleteCodes", trimmed);
+  // Use org-scoped document ID: orgId_code (e.g., "rt_1234")
+  const codeDocId = `${safeOrgId}_${trimmed}`;
+  const newRef = doc(database, "athleteCodes", codeDocId);
   const shouldClearPrevious = previous && previous !== trimmed;
-  const prevRef =
-    shouldClearPrevious && previous
-      ? doc(database, "athleteCodes", previous)
-      : null;
+  const prevDocId = shouldClearPrevious && previous ? `${safeOrgId}_${previous}` : null;
+  const prevRef = prevDocId ? doc(database, "athleteCodes", prevDocId) : null;
 
   try {
     await runTransaction(database, async (tx) => {
@@ -1810,7 +1828,7 @@ export async function ensureAthleteCode(
         }
       }
 
-      tx.set(newRef, { uid, updatedAt: serverTimestamp() });
+      tx.set(newRef, { uid, orgId: safeOrgId, updatedAt: serverTimestamp() });
 
       if (prevRef && prevSnap?.exists()) {
         const owner = prevSnap.data()?.uid;
@@ -1862,6 +1880,13 @@ export async function assignAthleteAccessCode(
     };
   }
 
+  // Get orgId from the profile - required for org-scoped codes
+  const orgId = profile.orgId || "";
+  if (!orgId) {
+    console.warn("Cannot assign athlete code without orgId in profile");
+    return { status: "unavailable", code: trimmed, source: "local" };
+  }
+
   const normalized: Profile = {
     ...profile,
     accessCode: trimmed,
@@ -1877,7 +1902,7 @@ export async function assignAthleteAccessCode(
     return { status: "ok", code: trimmed, source: "local" };
   }
 
-  const status = await ensureAthleteCode(targetUid, trimmed, profile.accessCode ?? null);
+  const status = await ensureAthleteCode(targetUid, trimmed, orgId, profile.accessCode ?? null);
   if (status === "taken") {
     return { status, code: trimmed, source: "remote" };
   }
@@ -2061,7 +2086,7 @@ export const buildCoachEmail = (firstName: string, lastName: string, orgId: stri
   const canonical = `${firstName}${lastName}`.toLowerCase().replace(/[^a-z]/g, "");
   const safeOrgId = (orgId || "pl").toLowerCase().replace(/[^a-z0-9]/g, "");
   // Use a proper email format that Firebase accepts
-  return `coach-${canonical}-${safeOrgId}@plstrength.app`;
+  return `coach-${canonical}-${safeOrgId}@anchorone.app`;
 };
 
 export const coachPassword = (orgCode: string, coachPasscode: string) => {

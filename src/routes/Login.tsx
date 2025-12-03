@@ -24,7 +24,7 @@ export default function Login() {
     <div className="max-w-md mx-auto mt-10 card">
       <div className="flex items-center gap-3 mb-3">
         <img src="/icons/icon-96.png" className="w-10 h-10" />
-        <h1 className="text-xl font-bold">Welcome to PL Strength</h1>
+        <h1 className="text-xl font-bold">Welcome to AnchorOne</h1>
       </div>
       <form onSubmit={submit} className="space-y-4">
         <div>

@@ -48,12 +48,12 @@ export default function OrgLogin() {
     );
   }
 
-  const title = org?.name ? `${org.name} Strength` : "PL Strength";
+  const title = org?.name ? `${org.name} Strength` : "AnchorOne";
   const logo = org?.logo || "/assets/dragon.png";
 
   return (
     <LoginLanding
-      orgName={org?.name || "PL Strength"}
+      orgName={org?.name || "AnchorOne"}
       logoSrc={logo}
       titlePrefix={title}
       primaryColor={org?.primaryColor}

@@ -287,7 +287,7 @@ export default function Nav() {
   const closeMenu = () => setMenuOpen(false);
 
   const orgLogo = org?.logo || "/assets/dragon.png";
-  const orgName = org?.abbr || org?.name || "PL Strength";
+  const orgName = org?.abbr || org?.name || "AnchorOne";
   const brandColor = org?.primaryColor || "#8B1C21";
   const homeLink = coach ? "/team" : "/session";
 

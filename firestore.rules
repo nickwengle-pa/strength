@@ -177,7 +177,7 @@ service cloud.firestore {
     match /athleteCodes/{code} {
       allow read: if isSignedIn();
       allow create, update: if isSignedIn()
-        && request.resource.data.keys().hasOnly(["uid", "updatedAt"])
+        && request.resource.data.keys().hasOnly(["uid", "orgId", "updatedAt"])
         && (
           request.resource.data.uid == request.auth.uid
           || isCoach()

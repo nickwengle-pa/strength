@@ -39,7 +39,7 @@ export default function OnboardingWizard({ onComplete, unit }: OnboardingWizardP
         {/* Header */}
         <div className="bg-gradient-to-r from-brand-500 to-brand-600 p-6 text-white">
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold">Welcome to PL Strength</h2>
+            <h2 className="text-2xl font-bold">Welcome to AnchorOne</h2>
             <button
               onClick={skipOnboarding}
               className="text-sm text-white/80 hover:text-white underline"
@@ -68,7 +68,7 @@ export default function OnboardingWizard({ onComplete, unit }: OnboardingWizardP
             <div className="space-y-4">
               <h3 className="text-2xl font-bold text-gray-900">Let's Get Started! 💪</h3>
               <p className="text-gray-700 text-lg">
-                PL Strength helps you track your powerlifting journey using the proven 5/3/1 training methodology.
+                AnchorOne helps you track your powerlifting journey using the proven 5/3/1 training methodology.
               </p>
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <p className="text-blue-900 font-medium">This quick tutorial will show you:</p>
@@ -167,7 +167,7 @@ export default function OnboardingWizard({ onComplete, unit }: OnboardingWizardP
             <div className="space-y-4">
               <h3 className="text-2xl font-bold text-gray-900">Key App Features 🚀</h3>
               <p className="text-gray-700">
-                Here's what you can do in PL Strength:
+                Here's what you can do in AnchorOne:
               </p>
 
               <div className="space-y-3">
