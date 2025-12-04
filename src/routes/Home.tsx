@@ -93,8 +93,12 @@ export default function Home() {
         </Link>
       </div>
       <main className="relative flex min-h-screen flex-col items-center justify-center gap-6 px-4 py-6">
-        <div className="pointer-events-none absolute -top-20 -left-24 z-10 hidden opacity-15 blur-sm md:block">
-          <img src="/logo.png" alt="AnchorOne watermark" className="h-[420px] w-auto" />
+        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center opacity-15 blur-sm">
+          <img
+            src="/logo.png"
+            alt="AnchorOne watermark"
+            className="w-[70vw] max-w-[560px] opacity-90"
+          />
         </div>
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.12),transparent_35%),radial-gradient(circle_at_80%_0%,rgba(255,255,255,0.08),transparent_25%)]" />
         <div className="relative z-10 w-full text-center">
