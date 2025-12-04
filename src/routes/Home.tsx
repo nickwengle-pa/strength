@@ -74,9 +74,15 @@ export default function Home() {
 
   return (
     <div className="min-h-screen w-full overflow-hidden bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white">
-      {/* Top bar with logo and admin link */}
-      <div className="absolute top-6 left-6 z-50">
-        <img src="/logo.png" alt="AnchorOne" className="h-64 w-auto" />
+      {/* Top corner branding */}
+      <div className="absolute top-6 left-6 z-40 hidden items-center gap-4 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 shadow-xl backdrop-blur md:flex">
+        <img src="/logo.png" alt="AnchorOne" className="h-14 w-auto drop-shadow" />
+        <div className="text-left">
+          <p className="text-xs uppercase tracking-[0.4em] text-white/60">
+            AnchorOne
+          </p>
+          <p className="text-base font-semibold text-white">Strength</p>
+        </div>
       </div>
       <div className="absolute top-6 right-6 z-50">
         <Link
@@ -87,6 +93,9 @@ export default function Home() {
         </Link>
       </div>
       <main className="relative flex min-h-screen flex-col items-center justify-center gap-6 px-4 py-6">
+        <div className="pointer-events-none absolute -top-20 -left-24 z-10 hidden opacity-15 blur-sm md:block">
+          <img src="/logo.png" alt="AnchorOne watermark" className="h-[420px] w-auto" />
+        </div>
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.12),transparent_35%),radial-gradient(circle_at_80%_0%,rgba(255,255,255,0.08),transparent_25%)]" />
         <div className="relative z-10 w-full text-center">
           <h1 className="text-5xl font-black leading-tight md:text-6xl">
