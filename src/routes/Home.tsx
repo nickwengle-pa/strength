@@ -15,44 +15,13 @@ type CarouselTeam = {
   secondaryColor?: string;
 };
 
-const CAROUSEL_TEAMS: CarouselTeam[] = [
-  {
-    id: "demo-high",
-    name: "Demo High",
-    subtitle: "Red Dragons",
-    logo: "/assets/dragon.png",
-    accent: "from-orange-400 via-red-500 to-rose-600",
-    loginPath: "/DH",
-    primaryColor: "#8B1C21",
-    secondaryColor: "#B9B9B9",
-  },
-  {
-    id: "blue-lake",
-    name: "Blue Lake Prep",
-    subtitle: "Falcons",
-    logo: "/assets/pl.png",
-    accent: "from-sky-400 via-blue-500 to-indigo-600",
-  },
-  {
-    id: "east-tech",
-    name: "East Tech",
-    subtitle: "Chargers",
-    logo: "/assets/pl.png",
-    accent: "from-emerald-400 via-teal-500 to-cyan-500",
-  },
-  {
-    id: "west-ridge",
-    name: "West Ridge",
-    subtitle: "Wolves",
-    logo: "/assets/dragon.png",
-    accent: "from-amber-400 via-rose-500 to-red-600",
-  },
-];
+const CAROUSEL_TEAMS: CarouselTeam[] = [];
 
 export default function Home() {
   const [activeSlide, setActiveSlide] = useState(0);
   const navigate = useNavigate();
-  const [teams, setTeams] = useState<CarouselTeam[]>(CAROUSEL_TEAMS);
+  const [teams, setTeams] = useState<CarouselTeam[]>([]);
+  const [loading, setLoading] = useState(true);
   const { org, setOrg } = useOrg();
   const [ctaMessage, setCtaMessage] = useState<string | null>(null);
 
@@ -65,7 +34,10 @@ export default function Home() {
   useEffect(() => {
     const loadOrgs = async () => {
       const db = fb.db;
-      if (!db) return;
+      if (!db) {
+        setLoading(false);
+        return;
+      }
       try {
         const snap = await getDocs(collection(db, "organizations"));
         const rows: CarouselTeam[] = [];
@@ -82,20 +54,17 @@ export default function Home() {
             secondaryColor: data?.secondaryColor,
           });
         });
-        if (rows.length) {
-          setTeams(rows);
-        } else {
-          setTeams(CAROUSEL_TEAMS);
-        }
+        setTeams(rows);
+        setLoading(false);
       } catch (err) {
         console.warn("Failed to load organizations for carousel", err);
-        setTeams(CAROUSEL_TEAMS);
+        setLoading(false);
       }
     };
     loadOrgs();
   }, []);
 
-  const slideCount = teams.length || CAROUSEL_TEAMS.length;
+  const slideCount = teams.length || 1;
 
   useEffect(() => {
     if (activeSlide >= teams.length) {
@@ -143,6 +112,15 @@ export default function Home() {
         </div>
 
         <div className="relative w-full mt-12">
+          {loading ? (
+            <div className="flex justify-center items-center h-48">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+            </div>
+          ) : teams.length === 0 ? (
+            <div className="text-center text-white/70">
+              <p>No programs available yet.</p>
+            </div>
+          ) : (
           <div className="carousel-3d mx-auto" role="listbox" aria-label="Team selector">
             {teams.map((item, index) => {
               const rawOffset = index - activeSlide;
@@ -210,10 +188,11 @@ export default function Home() {
               );
             })}
           </div>
-
+          )}
         </div>
 
         <div className="relative w-full mt-8 flex items-center justify-center">
+          {!loading && teams.length > 0 && (
           <div className="flex items-center justify-center gap-3">
             {teams.map((_, index) => (
               <button
@@ -227,6 +206,7 @@ export default function Home() {
               />
             ))}
           </div>
+          )}
         </div>
       </main>
     </div>
