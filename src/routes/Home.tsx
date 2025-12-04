@@ -97,7 +97,7 @@ export default function Home() {
           <img
             src="/logo.png"
             alt="AnchorOne watermark"
-            className="w-[70vw] max-w-[560px] opacity-90"
+            className="w-[70vw] max-w-[560px] opacity-90 mix-blend-screen"
           />
         </div>
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.12),transparent_35%),radial-gradient(circle_at_80%_0%,rgba(255,255,255,0.08),transparent_25%)]" />
