@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import {
   formatTeamLabel,
@@ -201,6 +201,7 @@ export default function Nav() {
 
   const athleteLinks = [
     { to: "/session", label: "Session" },
+    { to: "/program-outline", label: "Daily Lift" },
     { to: "/calculator", label: "Calculator" },
     { to: "/progress", label: "Progress" },
     { to: "/exercises", label: "Exercises" },
