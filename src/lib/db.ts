@@ -1777,6 +1777,25 @@ export async function recentSessions(
   }
 }
 
+
+export async function getAllSessionsForProfile(
+  targetUid?: string
+): Promise<{ lift: string; sessions: SessionRecord[] }[]> {
+  const lifts: Lift[] = ["squat", "bench", "deadlift", "press"];
+  const results: { lift: string; sessions: SessionRecord[] }[] = [];
+  
+  for (const lift of lifts) {
+    const sessions = await recentSessions(lift, 50, targetUid);
+    if (sessions.length > 0) {
+      // Sort by date ascending for chart display
+      sessions.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+      results.push({ lift, sessions });
+    }
+  }
+  
+  return results;
+}
+
 export async function bestEst1RM(
   lift: Lift,
   sample = 10,
