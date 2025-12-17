@@ -1,4 +1,4 @@
-﻿import React from "react";
+import React from "react";
 import { useLocation } from "react-router-dom";
 import { formatTeamLabel } from "../lib/db";
 import { useActiveAthlete } from "../context/ActiveAthleteContext";

@@ -1,4 +1,4 @@
-﻿import React, { useEffect } from "react";
+import React, { useEffect } from "react";
 import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import Nav from "./components/Nav";
 import ActiveAthleteBanner from "./components/ActiveAthleteBanner";
@@ -24,7 +24,7 @@ import OrgLogin from "./routes/OrgLogin";
 import NewSchool from "./routes/NewSchool";
 import AdminInvites from "./routes/AdminInvites";
 import SuperAdmin from "./routes/SuperAdmin";
-import OrgSettings from "./routes/OrgSettings";`nimport AppVersion from "./components/AppVersion";
+import OrgSettings from "./routes/OrgSettings";
 import { useAuth } from "./lib/auth";
 import { ActiveAthleteProvider } from "./context/ActiveAthleteContext";
 import { useOrg } from "./context/OrgContext";
@@ -40,7 +40,7 @@ export default function App() {
   if (initializing || signingInWithLink) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 text-gray-600">
-        Loading your accountâ€¦
+        Loading your account…
       </div>
     );
   }
