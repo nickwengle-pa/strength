@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+﻿import React, { useEffect, useState } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import {
   formatTeamLabel,
@@ -216,7 +216,7 @@ export default function Nav() {
     { to: "/calculator", label: "Calculator" },
     { to: "/progress", label: "Progress" },
     { to: "/sheets", label: "Sheets" },
-    { to: "/program-outline", label: "Program Outline" },
+    { to: "/program-outline", label: "Daily Lift" },
     { to: "/exercises", label: "Exercises" },
     { to: "/profile", label: "Profile" },
     { to: "/guide", label: "Guide" },
@@ -380,7 +380,7 @@ export default function Nav() {
                   className="inline-flex items-center rounded-full border px-3 py-1 text-xs md:text-sm font-semibold transition-colors"
                   style={{ borderColor: '#f97316', backgroundColor: '#fff7ed', color: '#ea580c' }}
                 >
-                  🔧 Super Admin
+                  ðŸ”§ Super Admin
                 </NavLink>
               )}
               {coach && !admin && (
@@ -447,7 +447,7 @@ export default function Nav() {
                     style={{ borderColor: '#f97316', backgroundColor: '#fff7ed', color: '#ea580c' }}
                     onClick={closeMenu}
                   >
-                    🔧 Super Admin
+                    ðŸ”§ Super Admin
                   </NavLink>
                 )}
                 {coach && !admin && (
