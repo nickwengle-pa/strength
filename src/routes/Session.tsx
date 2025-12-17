@@ -493,7 +493,7 @@ export default function Session() {
                   }}
                   className="py-5 bg-green-500 hover:bg-green-600 rounded-xl font-bold text-xl shadow-lg"
                 >
-                  ✓ Done
+                  Ã¢Å“â€œ Done
                 </button>
                 <button
                   onClick={() => {
@@ -513,7 +513,7 @@ export default function Session() {
                   }}
                   className="py-5 bg-red-500 hover:bg-red-600 rounded-xl font-bold text-xl shadow-lg"
                 >
-                  ✗ Failed
+                  Ã¢Å“â€” Failed
                 </button>
               </div>
 
@@ -524,14 +524,14 @@ export default function Session() {
                   disabled={currentSetIndex === 0}
                   className="py-2 bg-white/10 hover:bg-white/20 rounded-lg disabled:opacity-30 text-sm"
                 >
-                  ← Previous
+                  Ã¢â€ Â Previous
                 </button>
                 <button
                   onClick={() => setCurrentSetIndex(prev => Math.min(allSets.length - 1, prev + 1))}
                   disabled={isLastSet}
                   className="py-2 bg-white/10 hover:bg-white/20 rounded-lg disabled:opacity-30 text-sm"
                 >
-                  Next →
+                  Next Ã¢â€ â€™
                 </button>
               </div>
 
@@ -608,11 +608,11 @@ export default function Session() {
                     }}
                     className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-brand-500 to-brand-600 px-4 py-2 text-sm font-bold text-white shadow-lg hover:from-brand-600 hover:to-brand-700"
                   >
-                    📱 Mobile Workout Mode
+                    Ã°Å¸â€œÂ± Mobile Workout Mode
                   </button>
                 ) : (
                   <div className="inline-flex items-center gap-2 rounded-full bg-gray-100 px-4 py-2 text-sm text-gray-500">
-                    📱 Mobile Workout Mode
+                    Ã°Å¸â€œÂ± Mobile Workout Mode
                     <span className="text-xs">(Set TM first)</span>
                   </div>
                 )}
@@ -688,7 +688,7 @@ export default function Session() {
             </div>
 
             <div className="rounded-2xl border border-gray-100 bg-white/90 px-4 py-3 text-xs text-gray-600 shadow-inner">
-              <span className="font-semibold text-gray-700">Set status legend:</span> S = completed all prescribed reps. F = stopped early - record the reps completed.
+              <span className="font-semibold text-gray-700">Set status legend:</span>  = completed all prescribed reps.  = stopped early - record the reps completed.
             </div>
 
             <div className="space-y-4">
@@ -927,9 +927,7 @@ function SetRow({
               ? "border-emerald-500 bg-emerald-100 text-emerald-700 shadow-sm"
               : "border-gray-300 bg-white text-gray-700 hover:border-emerald-400 hover:text-emerald-600"
           }`}
-        >
-          S
-        </button>
+        ><svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg></button>
         <button
           type="button"
           onClick={() => onStatusChange(status === "F" ? "" : "F")}
@@ -938,9 +936,7 @@ function SetRow({
               ? "border-rose-500 bg-rose-100 text-rose-700 shadow-sm"
               : "border-gray-300 bg-white text-gray-700 hover:border-rose-400 hover:text-rose-600"
           }`}
-        >
-          F
-        </button>
+        ><svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>
       </div>
 
       {showActualInput && status === "F" && (
