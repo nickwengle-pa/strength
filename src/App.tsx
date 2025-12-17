@@ -25,6 +25,7 @@ import NewSchool from "./routes/NewSchool";
 import AdminInvites from "./routes/AdminInvites";
 import SuperAdmin from "./routes/SuperAdmin";
 import OrgSettings from "./routes/OrgSettings";
+import AppVersion from "./components/AppVersion";
 import { useAuth } from "./lib/auth";
 import { ActiveAthleteProvider } from "./context/ActiveAthleteContext";
 import { useOrg } from "./context/OrgContext";
@@ -120,6 +121,7 @@ export default function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
+        <AppVersion />
       </div>
     </ActiveAthleteProvider>
   );

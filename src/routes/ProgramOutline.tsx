@@ -452,19 +452,7 @@ export default function ProgramOutline() {
     );
   }
 
-  if (!coach) {
-    return (
-      <div className="container py-6">
-        <div className="card space-y-2 text-sm text-gray-600">
-          <h1 className="text-lg font-semibold text-gray-800">Coach/Admin Access Required</h1>
-          <p>
-            The program outline is available to coaches and admins only. Sign in with a coach account to view the
-            current program.
-          </p>
-        </div>
-      </div>
-    );
-  }
+  // Athletes can view but not edit
 
   const updateOutline = (partial: Partial<ProgramOutlineData>) => {
     setOutline((prev) => {
@@ -478,7 +466,7 @@ export default function ProgramOutline() {
     <div className="container py-6 space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold">Program Outline</h1>
+          <h1 className="text-2xl font-semibold">Daily Lift</h1>
           <p className="mt-1 text-sm text-gray-600">
             Snapshot for each training cycle. Update the cycle count to match your plan, then review the outline per
             cycle below.
@@ -495,9 +483,9 @@ export default function ProgramOutline() {
               {editMode ? "Done editing" : "Edit outline"}
             </button>
           )}
-          {coach && !admin && (
+          {!admin && (
             <span className="text-xs text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
-              View only - Admin can edit
+              View only
             </span>
           )}
 
@@ -1210,7 +1198,7 @@ function AccessorySection({
                       className="rounded-full border border-rose-200 bg-white px-2 py-0.5"
                     >
                       {option.name}
-                      {option.prescription ? ` · ${option.prescription}` : ""}
+                      {option.prescription ? ` Ãƒâ€šÃ‚Â· ${option.prescription}` : ""}
                     </span>
                   ))}
                 </div>
