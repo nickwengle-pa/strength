@@ -493,7 +493,7 @@ export default function Session() {
                   }}
                   className="py-5 bg-green-500 hover:bg-green-600 rounded-xl font-bold text-xl shadow-lg"
                 >
-                  ÃƒÂ¢Ã…â€œÃ¢â‚¬Å“ Done
+                  Ã¢Å“â€œ Done
                 </button>
                 <button
                   onClick={() => {
@@ -513,7 +513,7 @@ export default function Session() {
                   }}
                   className="py-5 bg-red-500 hover:bg-red-600 rounded-xl font-bold text-xl shadow-lg"
                 >
-                  ÃƒÂ¢Ã…â€œÃ¢â‚¬â€ Failed
+                  Ã¢Å“â€” Failed
                 </button>
               </div>
 
@@ -524,14 +524,14 @@ export default function Session() {
                   disabled={currentSetIndex === 0}
                   className="py-2 bg-white/10 hover:bg-white/20 rounded-lg disabled:opacity-30 text-sm"
                 >
-                  ÃƒÂ¢Ã¢â‚¬Â Ã‚Â Previous
+                  Ã¢â€ Â Previous
                 </button>
                 <button
                   onClick={() => setCurrentSetIndex(prev => Math.min(allSets.length - 1, prev + 1))}
                   disabled={isLastSet}
                   className="py-2 bg-white/10 hover:bg-white/20 rounded-lg disabled:opacity-30 text-sm"
                 >
-                  Next ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢
+                  Next Ã¢â€ â€™
                 </button>
               </div>
 
@@ -608,11 +608,11 @@ export default function Session() {
                     }}
                     className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-brand-500 to-brand-600 px-4 py-2 text-sm font-bold text-white shadow-lg hover:from-brand-600 hover:to-brand-700"
                   >
-                    ÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã‚Â± Mobile Workout Mode
+                    Mobile Workout Mode
                   </button>
                 ) : (
                   <div className="inline-flex items-center gap-2 rounded-full bg-gray-100 px-4 py-2 text-sm text-gray-500">
-                    ÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã‚Â± Mobile Workout Mode
+                    Mobile Workout Mode
                     <span className="text-xs">(Set TM first)</span>
                   </div>
                 )}
